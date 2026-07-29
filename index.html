@@ -238,11 +238,16 @@
         <div>
           <h2 id="dialogTitle"></h2>
           <p id="dialogSubtitle"></p>
-        </div><button class="icon-button" value="cancel" aria-label="Schließen">×</button>
-      </div>
-      <div class="dialog-body" id="dialogFields"></div>
-      <div class="dialog-footer"><button class="secondary-button" value="cancel">Abbrechen</button><button
-          class="primary-button" id="dialogSaveButton" value="default">Speichern</button></div>
+          <button type="submit" class="icon-button" value="cancel" formnovalidate aria-label="Schließen">
+            ×
+          </button>
+        </div>
+        <div class="dialog-body" id="dialogFields"></div>
+        <div class="dialog-footer"><button type="submit" class="secondary-button" value="cancel" formnovalidate>
+            Abbrechen
+          </button>
+          <button class="primary-button" id="dialogSaveButton" value="default">Speichern</button>
+        </div>
     </form>
   </dialog>
 
