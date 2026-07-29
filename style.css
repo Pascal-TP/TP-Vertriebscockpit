@@ -98,7 +98,7 @@ textarea {
 
 .logo-panel {
     width: 100%;
-    background: #35566b;
+    background: hsl(203, 49%, 85%);
     border-radius: 12px;
     padding: 18px 12px;
     margin-bottom: 18px;
