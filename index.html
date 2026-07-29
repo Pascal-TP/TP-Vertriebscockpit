@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <meta name="theme-color" content="#12354a">
+  <title>TP Vertriebscockpit – Entwurf</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar">
+      <div class="brand">
+        <div class="brand-mark">TP</div>
+        <div><strong>Vertriebscockpit</strong><span>Außendienst & Innendienst</span></div>
+      </div>
+      <nav class="main-nav" aria-label="Hauptnavigation">
+        <button class="nav-button active" data-view="dashboard"><span>▦</span> Dashboard</button>
+        <button class="nav-button" data-view="customers"><span>◉</span> Kunden</button>
+        <button class="nav-button" data-view="appointments"><span>□</span> Termine</button>
+        <button class="nav-button" data-view="activities"><span>↻</span> Aktivitäten</button>
+        <button class="nav-button" data-view="followups"><span>✓</span> Wiedervorlagen</button>
+        <button class="nav-button" data-view="import"><span>⇧</span> CSV-Import</button>
+      </nav>
+      <div class="sidebar-card">
+        <small>Hier befinden Sie sich</small>
+        <strong id="locationLabel">Dashboard</strong>
+        <span id="locationHint">Vertriebsaktivitäten im Überblick</span>
+      </div>
+      <div class="sidebar-footer">Prototyp · lokale Demodaten</div>
+    </aside>
+
+    <main class="main-content">
+      <header class="topbar">
+        <button class="icon-button menu-button" id="menuButton" aria-label="Menü öffnen">☰</button>
+        <div>
+          <h1 id="pageTitle">Dashboard</h1>
+          <p id="pageSubtitle">Aktivitäten, Termine und offene Aufgaben im Überblick</p>
+        </div>
+        <div class="topbar-actions">
+          <label class="global-search"><span>⌕</span><input id="globalSearch" type="search" placeholder="Kunde, Ort oder Ansprechpartner"></label>
+          <button class="primary-button" id="quickActivityButton">+ Kontakt erfassen</button>
+        </div>
+      </header>
+
+      <section class="view active" id="view-dashboard">
+        <div class="filter-row card">
+          <label>Zeitraum<select id="dashboardPeriod"><option value="week">Diese Woche</option><option value="month">Dieser Monat</option><option value="all">Gesamt</option></select></label>
+          <label>Außendienst<select id="dashboardOwner"><option value="all">Alle</option></select></label>
+          <button class="secondary-button" id="resetDemoButton">Demodaten zurücksetzen</button>
+        </div>
+        <div class="kpi-grid" id="kpiGrid"></div>
+        <div class="dashboard-grid">
+          <article class="card chart-card">
+            <div class="card-heading"><div><h2>Aktivitäten je Kalenderwoche</h2><p>Kontakte des gefilterten Außendienstes</p></div></div>
+            <div class="bar-chart" id="activityChart"></div>
+          </article>
+          <article class="card">
+            <div class="card-heading"><div><h2>Vertriebspipeline</h2><p>Aktueller Stand der Kunden und Leads</p></div></div>
+            <div class="pipeline-list" id="pipelineList"></div>
+          </article>
+          <article class="card">
+            <div class="card-heading"><div><h2>Heute & demnächst</h2><p>Anstehende Kundentermine</p></div><button class="text-button" data-go="appointments">Alle anzeigen</button></div>
+            <div class="compact-list" id="upcomingAppointments"></div>
+          </article>
+          <article class="card">
+            <div class="card-heading"><div><h2>Handlungsbedarf</h2><p>Überfällige Wiedervorlagen und lange Kontaktpausen</p></div><button class="text-button" data-go="followups">Öffnen</button></div>
+            <div class="compact-list" id="attentionList"></div>
+          </article>
+        </div>
+      </section>
+
+      <section class="view" id="view-customers">
+        <div class="toolbar card">
+          <div class="segmented" id="customerTypeFilter">
+            <button class="active" data-value="all">Alle</button><button data-value="Bestandskunde">Bestandskunden</button><button data-value="Interessent">Interessenten</button><button data-value="Kaltakquise">Kaltakquise</button>
+          </div>
+          <div class="toolbar-actions">
+            <select id="customerOwnerFilter"><option value="all">Alle Außendienstmitarbeiter</option></select>
+            <button class="primary-button" id="newCustomerButton">+ Kunde</button>
+          </div>
+        </div>
+        <div class="content-split">
+          <article class="card list-panel">
+            <div class="list-toolbar"><strong id="customerCount">0 Kunden</strong><input id="customerSearch" type="search" placeholder="Liste durchsuchen"></div>
+            <div class="customer-list" id="customerList"></div>
+          </article>
+          <article class="card detail-panel" id="customerDetail"><div class="empty-state"><div>◉</div><h2>Kunden auswählen</h2><p>Wählen Sie links einen Kunden aus, um Stammdaten, Historie und nächste Schritte zu sehen.</p></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-appointments">
+        <div class="toolbar card"><div><h2>Terminübersicht</h2><p>Geplante Besuche und Gespräche</p></div><button class="primary-button" id="newAppointmentButton">+ Termin</button></div>
+        <div class="appointment-layout">
+          <article class="card calendar-card"><div class="calendar-header"><button class="icon-button" id="prevWeek">‹</button><strong id="calendarRange"></strong><button class="icon-button" id="nextWeek">›</button></div><div class="week-grid" id="weekGrid"></div></article>
+          <article class="card"><div class="card-heading"><div><h2>Terminliste</h2><p>Direkt zu Google Maps oder zum Kunden</p></div></div><div class="compact-list" id="appointmentList"></div></article>
+        </div>
+      </section>
+
+      <section class="view" id="view-activities">
+        <div class="toolbar card"><div><h2>Kontakt- und Besuchshistorie</h2><p>Jeder Anruf, jede E-Mail und jeder Besuch an einem Ort</p></div><button class="primary-button" id="newActivityButton">+ Aktivität</button></div>
+        <article class="card table-card"><div class="table-scroll"><table><thead><tr><th>Datum</th><th>Kunde</th><th>Außendienst</th><th>Kontaktart</th><th>Ergebnis</th><th>Nächster Schritt</th><th>Notiz</th></tr></thead><tbody id="activityTableBody"></tbody></table></div></article>
+      </section>
+
+      <section class="view" id="view-followups">
+        <div class="toolbar card"><div><h2>Wiedervorlagen</h2><p>Offene Aufgaben nach Fälligkeit und Priorität</p></div><button class="primary-button" id="newFollowupButton">+ Wiedervorlage</button></div>
+        <div class="followup-board" id="followupBoard"></div>
+      </section>
+
+      <section class="view" id="view-import">
+        <div class="import-grid">
+          <article class="card import-card"><div class="upload-icon">⇧</div><h2>Kundenlisten importieren</h2><p>CSV-Datei auswählen und einer Datenquelle zuordnen. Unterstützt Semikolon und Komma als Trennzeichen.</p><label>Datenquelle<select id="importType"><option>Bestandskunde</option><option>Interessent</option><option>Kaltakquise</option></select></label><label class="file-drop"><input type="file" id="csvFile" accept=".csv,text/csv"><strong>CSV-Datei auswählen</strong><span id="fileName">oder hier ablegen</span></label><button class="primary-button" id="importButton" disabled>Vorschau anzeigen</button></article>
+          <article class="card"><div class="card-heading"><div><h2>Importvorschau</h2><p id="importSummary">Noch keine Datei ausgewählt</p></div></div><div class="table-scroll"><table id="importPreview"><thead></thead><tbody></tbody></table></div><button class="primary-button hidden" id="confirmImportButton">Datensätze übernehmen</button></article>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <dialog id="formDialog">
+    <form method="dialog" id="dynamicForm">
+      <div class="dialog-header"><div><h2 id="dialogTitle"></h2><p id="dialogSubtitle"></p></div><button class="icon-button" value="cancel" aria-label="Schließen">×</button></div>
+      <div class="dialog-body" id="dialogFields"></div>
+      <div class="dialog-footer"><button class="secondary-button" value="cancel">Abbrechen</button><button class="primary-button" id="dialogSaveButton" value="default">Speichern</button></div>
+    </form>
+  </dialog>
+
+  <dialog id="noteDialog" class="note-dialog">
+    <div class="dialog-header"><div><h2>Handschriftliche Notiz</h2><p>Mit Maus, Touch oder Stift schreiben</p></div><button class="icon-button" id="closeNoteButton">×</button></div>
+    <div class="note-tools"><button class="secondary-button" id="clearCanvasButton">Leeren</button><span>Stiftbreite</span><input type="range" id="penWidth" min="1" max="8" value="3"></div>
+    <canvas id="noteCanvas" width="900" height="450"></canvas>
+    <div class="dialog-footer"><button class="secondary-button" id="cancelNoteButton">Abbrechen</button><button class="primary-button" id="saveNoteButton">Notiz übernehmen</button></div>
+  </dialog>
+
+  <div class="toast" id="toast"></div>
+  <script src="app.js"></script>
+</body>
+</html>
