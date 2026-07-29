@@ -96,6 +96,26 @@ textarea {
     color: #9fb2bf;
 }
 
+.logo-panel {
+    width: 100%;
+    background: #35566b;
+    border-radius: 12px;
+    padding: 18px 12px;
+    margin-bottom: 18px;
+
+    display: flex;
+    justify-content: center;
+    align-items: center;
+
+    border: 1px solid rgba(255, 255, 255, .08);
+}
+
+.sidebar-logo {
+    width: 185px;
+    height: auto;
+    display: block;
+}
+
 .brand strong,
 .brand span {
     display: block
