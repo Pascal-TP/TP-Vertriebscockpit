@@ -234,20 +234,30 @@
 
   <dialog id="formDialog">
     <form method="dialog" id="dynamicForm">
+
       <div class="dialog-header">
         <div>
           <h2 id="dialogTitle"></h2>
           <p id="dialogSubtitle"></p>
-          <button type="submit" class="icon-button" value="cancel" formnovalidate aria-label="Schließen">
-            ×
-          </button>
         </div>
-        <div class="dialog-body" id="dialogFields"></div>
-        <div class="dialog-footer"><button type="submit" class="secondary-button" value="cancel" formnovalidate>
-            Abbrechen
-          </button>
-          <button class="primary-button" id="dialogSaveButton" value="default">Speichern</button>
-        </div>
+
+        <button type="submit" class="icon-button" value="cancel" formnovalidate aria-label="Schließen">
+          ×
+        </button>
+      </div>
+
+      <div class="dialog-body" id="dialogFields"></div>
+
+      <div class="dialog-footer">
+        <button type="submit" class="secondary-button" value="cancel" formnovalidate>
+          Abbrechen
+        </button>
+
+        <button type="submit" class="primary-button" id="dialogSaveButton" value="default">
+          Speichern
+        </button>
+      </div>
+
     </form>
   </dialog>
 
