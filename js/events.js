@@ -75,22 +75,6 @@ function bindGlobalActionEvents() {
       return;
     }
 
-    const completeButton = event.target.closest(".complete-followup");
-
-    if (completeButton) {
-      const followup = data.followups.find(
-        (item) => item.id === completeButton.dataset.id,
-      );
-
-      if (!followup) {
-        toast("Die Wiedervorlage wurde nicht gefunden.");
-        return;
-      }
-
-      followup.status = "Erledigt";
-      saveData();
-      toast("Wiedervorlage erledigt.");
-    }
   });
 }
 
@@ -110,6 +94,26 @@ function handleActionButton(button) {
 
   if (action === "delete-appointment") {
     deleteAppointment(recordId);
+    return;
+  }
+
+  if (action === "edit-followup") {
+    openFollowupEditForm(recordId);
+    return;
+  }
+
+  if (action === "complete-followup") {
+    completeFollowup(recordId);
+    return;
+  }
+
+  if (action === "reopen-followup") {
+    reopenFollowup(recordId);
+    return;
+  }
+
+  if (action === "delete-followup") {
+    deleteFollowup(recordId);
     return;
   }
 

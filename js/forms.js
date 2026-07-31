@@ -110,6 +110,7 @@ const formConfigs = {
 
   followup: {
     title: "Wiedervorlage anlegen",
+    editTitle: "Wiedervorlage bearbeiten",
     subtitle: "Konkreten nächsten Schritt terminieren",
     fields: [
       ["customerId", "Kunde", "customer", true],
@@ -251,7 +252,7 @@ function saveForm(type, values, options = {}) {
   }
 
   if (type === "followup") {
-    saveFollowup(values);
+    saveFollowup(values, mode, recordId);
   }
 
   saveData();
@@ -354,7 +355,19 @@ function saveAppointment(values, mode, recordId) {
   syncCustomerNextAppointment(values.customerId);
 }
 
-function saveFollowup(values) {
+function saveFollowup(values, mode, recordId) {
+  if (mode === "edit") {
+    const followup = followupById(recordId);
+
+    if (!followup) {
+      toast("Die Wiedervorlage wurde nicht gefunden.");
+      return;
+    }
+
+    Object.assign(followup, values);
+    return;
+  }
+
   values.id = `W-${Date.now()}`;
   data.followups.push(values);
 }
