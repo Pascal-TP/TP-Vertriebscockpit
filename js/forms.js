@@ -96,6 +96,7 @@ const formConfigs = {
 
   appointment: {
     title: "Termin anlegen",
+    editTitle: "Termin bearbeiten",
     subtitle: "Kundentermin für Innen- und Außendienst planen",
     fields: [
       ["customerId", "Kunde", "customer", true],
@@ -246,7 +247,7 @@ function saveForm(type, values, options = {}) {
   }
 
   if (type === "appointment") {
-    saveAppointment(values);
+    saveAppointment(values, mode, recordId);
   }
 
   if (type === "followup") {
@@ -328,15 +329,29 @@ function saveActivity(values) {
   }
 }
 
-function saveAppointment(values) {
+function saveAppointment(values, mode, recordId) {
+  if (mode === "edit") {
+    const appointment = appointmentById(recordId);
+
+    if (!appointment) {
+      toast("Der Termin wurde nicht gefunden.");
+      return;
+    }
+
+    const previousCustomerId = appointment.customerId;
+
+    Object.assign(appointment, values);
+
+    syncCustomerNextAppointment(previousCustomerId);
+    syncCustomerNextAppointment(appointment.customerId);
+
+    return;
+  }
+
   values.id = `T-${Date.now()}`;
   data.appointments.push(values);
 
-  const customer = customerById(values.customerId);
-
-  if (customer) {
-    customer.nextAppointment = values.date;
-  }
+  syncCustomerNextAppointment(values.customerId);
 }
 
 function saveFollowup(values) {

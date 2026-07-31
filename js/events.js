@@ -103,6 +103,16 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "edit-appointment") {
+    openAppointmentEditForm(recordId);
+    return;
+  }
+
+  if (action === "delete-appointment") {
+    deleteAppointment(recordId);
+    return;
+  }
+
   openForm(action, {
     customerId: recordId,
   });
