@@ -87,6 +87,16 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "archive-customer") {
+    archiveCustomer(recordId);
+    return;
+  }
+
+  if (action === "restore-customer") {
+    restoreCustomer(recordId);
+    return;
+  }
+
   if (action === "edit-appointment") {
     openAppointmentEditForm(recordId);
     return;

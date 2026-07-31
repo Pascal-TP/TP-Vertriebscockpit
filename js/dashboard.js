@@ -131,6 +131,7 @@ function renderDashboard() {
     stage,
     count: data.customers.filter(
       (customer) =>
+        customer.archived !== true &&
         customer.pipeline === stage &&
         (owner === "all" || customer.owner === owner),
     ).length,
@@ -177,7 +178,11 @@ function renderDashboard() {
     }));
 
   const stale = data.customers
-    .filter((customer) => daysBetween(customer.lastContact) > 180)
+    .filter(
+      (customer) =>
+        customer.archived !== true &&
+        daysBetween(customer.lastContact) > 180,
+    )
     .slice(0, 2)
     .map((customer) => ({
       title: customer.name,

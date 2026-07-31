@@ -287,6 +287,8 @@ function saveCustomer(values, mode, recordId) {
   values.id = `K-${Date.now()}`;
   values.lastContact = "";
   values.nextAppointment = "";
+  values.archived = false;
+  values.archivedAt = "";
 
   data.customers.push(values);
   currentCustomerId = values.id;
