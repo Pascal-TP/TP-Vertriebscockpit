@@ -1349,3 +1349,30 @@ textarea {
 .danger-text-button:hover {
     text-decoration: underline;
 }
+
+/* ==========================
+   Wiedervorlagen-Aktionen
+========================== */
+
+.followup-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid var(--line);
+}
+
+.followup-actions .text-button {
+    font-size: .7rem;
+}
+
+.board-empty {
+    padding: 18px 12px;
+    border: 1px dashed var(--line);
+    border-radius: 10px;
+    color: var(--muted);
+    font-size: .78rem;
+    text-align: center;
+}
