@@ -24,6 +24,8 @@ const logoutButton = document.querySelector("#logoutButton");
 const currentUserName = document.querySelector("#currentUserName");
 const currentUserEmail = document.querySelector("#currentUserEmail");
 const userAvatar = document.querySelector("#userAvatar");
+const loadingOverlay = document.querySelector("#loadingOverlay");
+const connectionStatus = document.querySelector("#connectionStatus");
 
 let authStateResolved = false;
 
@@ -101,16 +103,17 @@ async function showAuthenticatedApp(user) {
 
   loginScreen.classList.add("auth-hidden");
   appShell.classList.remove("auth-hidden");
+  loadingOverlay.classList.remove("auth-hidden");
 
   try {
     await startAllDataSync();
 
+    loadingOverlay.classList.add("auth-hidden");
     window.dispatchEvent(
-      new CustomEvent("crm-auth-ready", {
-        detail: { user },
-      }),
+      new CustomEvent("crm-auth-ready", { detail: { user } }),
     );
   } catch (error) {
+    loadingOverlay.classList.add("auth-hidden");
     console.error("Firestore initialization failed:", error);
     appShell.classList.add("auth-hidden");
     loginScreen.classList.remove("auth-hidden");
@@ -206,6 +209,30 @@ passwordResetButton.addEventListener("click", async () => {
     passwordResetButton.disabled = false;
   }
 });
+
+
+function updateConnectionStatus() {
+  const online = navigator.onLine;
+
+  if (!connectionStatus) return;
+
+  connectionStatus.dataset.state = online ? "online" : "offline";
+  connectionStatus.querySelector("strong").textContent =
+    online ? "Online" : "Offline";
+
+  if (!online) {
+    toast?.("Keine Internetverbindung. Änderungen sind derzeit nicht möglich.");
+  }
+}
+
+window.addEventListener("online", updateConnectionStatus);
+window.addEventListener("offline", updateConnectionStatus);
+window.addEventListener("crm-connection-error", () => {
+  if (!connectionStatus) return;
+  connectionStatus.dataset.state = "error";
+  connectionStatus.querySelector("strong").textContent = "Verbindungsfehler";
+});
+updateConnectionStatus();
 
 onAuthStateChanged(crmAuth, (user) => {
   authStateResolved = true;

@@ -1,6 +1,12 @@
 "use strict";
 
-let data = loadData();
+let data = {
+  customers: [],
+  activities: [],
+  appointments: [],
+  followups: [],
+};
+
 let currentCustomerId = null;
 let calendarOffset = 0;
 let pendingImport = [];
@@ -11,26 +17,18 @@ const $$ = (s) => [...document.querySelectorAll(s)];
 const customerById = (id) => data.customers.find((c) => c.id === id);
 
 const formatDate = (value) => {
-  if (!value) {
-    return "–";
-  }
-
+  if (!value) return "–";
   const date = String(value).includes("T")
     ? new Date(value)
     : new Date(`${value}T12:00:00`);
-
   return Number.isNaN(date.getTime())
     ? "–"
     : new Intl.DateTimeFormat("de-DE").format(date);
 };
 
 const formatDateTime = (value) => {
-  if (!value) {
-    return "–";
-  }
-
+  if (!value) return "–";
   const date = new Date(value);
-
   return Number.isNaN(date.getTime())
     ? "–"
     : new Intl.DateTimeFormat("de-DE", {
@@ -53,33 +51,19 @@ const initials = (name) =>
     .join("")
     .toUpperCase();
 
-function loadData() {
-  try {
-    return (
-      JSON.parse(localStorage.getItem(STORAGE_KEY)) || structuredClone(seedData)
-    );
-  } catch {
-    return structuredClone(seedData);
-  }
-}
-
 function saveData() {
   /*
-   * Firestore ist die führende Datenquelle.
-   * localStorage dient nur noch als lokaler Cache und als Quelle für die
-   * einmalige Übernahme alter Bestände.
+   * Kompatibilitätsfunktion für bestehende Darstellungslogik.
+   * Firestore bleibt die einzige Datenquelle; es werden keine CRM-Daten
+   * mehr in localStorage gespeichert.
    */
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   renderAll();
 }
 
 function replaceCollectionFromFirestore(collectionName, records) {
-  if (!["customers", "activities", "appointments", "followups"].includes(collectionName)) {
-    return;
-  }
+  if (!["customers", "activities", "appointments", "followups"].includes(collectionName)) return;
 
   data[collectionName] = records;
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
   if (
     collectionName === "customers" &&
@@ -89,9 +73,7 @@ function replaceCollectionFromFirestore(collectionName, records) {
     currentCustomerId = null;
   }
 
-  if (typeof renderAll === "function") {
-    renderAll();
-  }
+  if (typeof renderAll === "function") renderAll();
 
   if (
     collectionName !== "customers" &&
@@ -100,24 +82,17 @@ function replaceCollectionFromFirestore(collectionName, records) {
   ) {
     renderCustomerDetail(currentCustomerId);
   }
+
+  window.dispatchEvent(
+    new CustomEvent("crm-data-updated", { detail: { collectionName } }),
+  );
 }
 
-function getLocalDataForMigration() {
-  return structuredClone({
-    customers: data.customers || [],
-    activities: data.activities || [],
-    appointments: data.appointments || [],
-    followups: data.followups || [],
-  });
-}
-
-window.crmStateBridge = {
-  replaceCollectionFromFirestore,
-  getLocalDataForMigration,
-};
+window.crmStateBridge = { replaceCollectionFromFirestore };
 
 function toast(message) {
   const el = $("#toast");
+  if (!el) return;
   el.textContent = message;
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), 2400);

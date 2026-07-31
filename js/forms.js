@@ -18,6 +18,7 @@ const formConfigs = {
       ["city", "Ort", "text"],
       ["contact", "Ansprechpartner", "text"],
       ["phone", "Telefon", "tel"],
+      ["mobile", "Mobil", "tel"],
       ["email", "E-Mail", "email"],
       ["owner", "Außendienst", "select", owners],
       [
@@ -259,8 +260,12 @@ async function saveForm(type, values, options = {}) {
       changed = await saveFollowup(values, mode, recordId);
     }
 
+    if (changed === "opened") {
+      return true;
+    }
+
     if (changed === false) {
-      toast("Es wurden keine Änderungen festgestellt.");
+      return false;
     } else {
       toast(
         mode === "edit"
@@ -282,6 +287,23 @@ async function saveCustomer(values, mode, recordId) {
     .split(",")
     .map((trade) => trade.trim())
     .filter(Boolean);
+
+  const matches = findCustomerDuplicates(values, mode === "edit" ? recordId : "");
+
+  if (matches.length) {
+    const decision = await requestDuplicateDecision(matches);
+
+    if (decision.action === "cancel") {
+      return false;
+    }
+
+    if (decision.action === "open") {
+      $("#formDialog").close();
+      showView("customers");
+      renderCustomerDetail(decision.customerId);
+      return "opened";
+    }
+  }
 
   if (mode === "edit") {
     const customer = customerById(recordId);

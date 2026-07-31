@@ -8,7 +8,6 @@ function bindEvents() {
   bindCreateButtonEvents();
   bindAppointmentEvents();
   bindFormEvents();
-  bindDemoEvents();
   bindSearchEvents();
   bindImportEvents();
 }
@@ -218,14 +217,6 @@ function bindFormEvents() {
   });
 }
 
-function bindDemoEvents() {
-  $("#resetDemoButton").onclick = () => {
-    window.alert(
-      "Alle CRM-Daten werden jetzt zentral in Firestore gespeichert.\n\n" +
-        "Der bisherige Demo-Reset ist deshalb deaktiviert, damit keine gemeinsamen Daten versehentlich überschrieben werden.",
-    );
-  };
-}
 
 function bindSearchEvents() {
   $("#globalSearch").onkeydown = (event) => {

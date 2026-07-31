@@ -26,6 +26,11 @@ const viewMeta = {
     "Nächste Schritte zuverlässig verfolgen",
     "Offene Aufgaben und Fristen",
   ],
+  history: [
+    "Historie",
+    "Alle Änderungen im Vertriebscockpit nachvollziehen",
+    "Zentrale Änderungs- und Aktivitätshistorie",
+  ],
   import: [
     "CSV-Import",
     "Bestehende Kundenlisten strukturiert übernehmen",
@@ -45,6 +50,7 @@ function showView(name) {
   $("#locationLabel").textContent = title;
   $("#locationHint").textContent = hint;
   $("#sidebar").classList.remove("open");
+  if (name === "history" && typeof renderGlobalHistory === "function") renderGlobalHistory();
 }
 
 function fillOwnerSelects() {

@@ -2,7 +2,6 @@ import { crmAuth, crmDb } from "./firebase.js";
 
 import {
   collection,
-  deleteField,
   doc,
   getDocs,
   onSnapshot,
@@ -22,7 +21,7 @@ const collections = {
 const historyCollection = collection(crmDb, "history");
 const unsubscribers = {};
 let syncPromise = null;
-let migrationHandled = false;
+let unsubscribeHistory = null;
 
 const auditIgnoredFields = new Set([
   "createdAt",
@@ -713,54 +712,6 @@ async function loadCustomerHistory(customerId) {
   );
 }
 
-async function offerInitialMigration(emptyCollections, localData) {
-  if (migrationHandled) {
-    return;
-  }
-
-  migrationHandled = true;
-
-  const candidates = emptyCollections
-    .map((collectionName) => ({
-      collectionName,
-      records: localData[collectionName] || [],
-    }))
-    .filter((item) => item.records.length);
-
-  if (!candidates.length) {
-    return;
-  }
-
-  const labels = {
-    customers: "Kunden",
-    activities: "Aktivitäten",
-    appointments: "Termine",
-    followups: "Wiedervorlagen",
-  };
-
-  const overview = candidates
-    .map((item) => `• ${labels[item.collectionName]}: ${item.records.length}`)
-    .join("\n");
-
-  const confirmed = window.confirm(
-    `In Firestore fehlen noch zentrale Datenbestände.\n\n` +
-      `Lokal wurden folgende Datensätze gefunden:\n${overview}\n\n` +
-      `Sollen diese jetzt einmalig nach Firestore übernommen werden?`,
-  );
-
-  if (!confirmed) {
-    return;
-  }
-
-  for (const candidate of candidates) {
-    await importRecords(
-      candidate.collectionName,
-      candidate.records,
-      "migrated",
-    );
-  }
-}
-
 function sortedRecords(collectionName, records) {
   const copy = [...records];
 
@@ -792,36 +743,21 @@ function sortedRecords(collectionName, records) {
 }
 
 function startAllDataSync() {
-  if (syncPromise) {
-    return syncPromise;
-  }
+  if (syncPromise) return syncPromise;
 
   syncPromise = new Promise((resolve, reject) => {
     const collectionNames = Object.keys(collections);
-    const localData =
-      window.crmStateBridge?.getLocalDataForMigration?.() || {};
-    const firstSnapshots = new Map();
+    const firstSnapshots = new Set();
     let settled = false;
 
     function finishIfReady() {
-      if (firstSnapshots.size !== collectionNames.length || settled) {
-        return;
+      if (firstSnapshots.size === collectionNames.length && !settled) {
+        settled = true;
+        resolve();
       }
-
-      settled = true;
-
-      const emptyCollections = collectionNames.filter(
-        (name) => firstSnapshots.get(name) === true,
-      );
-
-      offerInitialMigration(emptyCollections, localData)
-        .then(resolve)
-        .catch(reject);
     }
 
     collectionNames.forEach((collectionName) => {
-      let firstSnapshot = true;
-
       unsubscribers[collectionName] = onSnapshot(
         collections[collectionName],
         (snapshot) => {
@@ -835,14 +771,14 @@ function startAllDataSync() {
             records,
           );
 
-          if (firstSnapshot) {
-            firstSnapshot = false;
-            firstSnapshots.set(collectionName, snapshot.empty);
-            finishIfReady();
-          }
+          firstSnapshots.add(collectionName);
+          finishIfReady();
         },
         (error) => {
           console.error(`${collectionName} synchronization failed:`, error);
+          window.dispatchEvent(
+            new CustomEvent("crm-connection-error", { detail: { error } }),
+          );
 
           if (!settled) {
             settled = true;
@@ -854,6 +790,29 @@ function startAllDataSync() {
   });
 
   return syncPromise;
+}
+
+function subscribeGlobalHistory(callback, errorCallback) {
+  if (unsubscribeHistory) {
+    unsubscribeHistory();
+  }
+
+  unsubscribeHistory = onSnapshot(
+    historyCollection,
+    (snapshot) => {
+      const entries = snapshot.docs
+        .map(normalizeHistory)
+        .sort((a, b) => String(b.changedAt).localeCompare(String(a.changedAt)));
+
+      callback(entries);
+    },
+    (error) => {
+      console.error("Global history synchronization failed:", error);
+      errorCallback?.(error);
+    },
+  );
+
+  return unsubscribeHistory;
 }
 
 window.crmFirestore = {
@@ -872,6 +831,7 @@ window.crmFirestore = {
   deleteFollowupRecord,
   importCustomers,
   loadCustomerHistory,
+  subscribeGlobalHistory,
 };
 
 export { startAllDataSync };
