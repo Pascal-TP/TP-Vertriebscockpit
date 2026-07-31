@@ -4,7 +4,16 @@ function renderDashboard() {
   const owner = $("#dashboardOwner").value || "all";
   const period = $("#dashboardPeriod").value;
   const now = new Date();
+  const activeCustomerIds = new Set(
+    data.customers
+      .filter((customer) => customer.archived !== true)
+      .map((customer) => customer.id),
+  );
+  const belongsToActiveCustomer = (record) =>
+    !record.customerId || activeCustomerIds.has(record.customerId);
+
   const filtered = data.activities.filter((a) => {
+    if (!belongsToActiveCustomer(a)) return false;
     if (owner !== "all" && a.owner !== owner) return false;
     const d = new Date(a.date + "T12:00:00");
     if (period === "week")
@@ -18,10 +27,15 @@ function renderDashboard() {
     return true;
   });
   const appointments = data.appointments.filter(
-    (a) => owner === "all" || a.owner === owner,
+    (a) =>
+      belongsToActiveCustomer(a) &&
+      (owner === "all" || a.owner === owner),
   );
   const open = data.followups.filter(
-    (w) => w.status !== "Erledigt" && (owner === "all" || w.owner === owner),
+    (w) =>
+      belongsToActiveCustomer(w) &&
+      w.status !== "Erledigt" &&
+      (owner === "all" || w.owner === owner),
   );
   const results = {
     activities: filtered.length,
@@ -59,6 +73,7 @@ function renderDashboard() {
   const counts = weeks.map(
     (w) =>
       data.activities.filter((a) => {
+        if (!belongsToActiveCustomer(a)) return false;
         const d = new Date(a.date + "T12:00:00");
         return (
           getWeek(d) === w.week &&
@@ -77,7 +92,10 @@ function renderDashboard() {
   const stageCounts = pipelineStages.map((s) => ({
     stage: s,
     count: data.customers.filter(
-      (c) => c.pipeline === s && (owner === "all" || c.owner === owner),
+      (c) =>
+        c.archived !== true &&
+        c.pipeline === s &&
+        (owner === "all" || c.owner === owner),
     ).length,
   }));
   const maxStage = Math.max(...stageCounts.map((s) => s.count), 1);
@@ -104,7 +122,12 @@ function renderDashboard() {
       cls: "red",
     }));
   const stale = data.customers
-    .filter((c) => daysBetween(c.lastContact) > 180)
+    .filter(
+      (c) =>
+        c.archived !== true &&
+        (owner === "all" || c.owner === owner) &&
+        daysBetween(c.lastContact) > 180,
+    )
     .slice(0, 2)
     .map((c) => ({
       title: c.name,
