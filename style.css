@@ -1641,3 +1641,140 @@ textarea {
         display: none;
     }
 }
+
+
+/* ==========================
+   Firestore-Audit und Historie
+========================== */
+
+.audit-summary {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin: 18px 0 24px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #f8fafb;
+}
+
+.audit-summary > div {
+    display: grid;
+    gap: 3px;
+}
+
+.audit-summary small,
+.audit-entry small {
+    color: var(--muted);
+}
+
+.audit-summary strong {
+    font-size: .82rem;
+}
+
+.audit-summary span {
+    overflow-wrap: anywhere;
+    color: var(--muted);
+    font-size: .7rem;
+}
+
+.section-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.audit-history {
+    display: grid;
+    gap: 10px;
+}
+
+.audit-entry {
+    padding: 13px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+}
+
+.audit-entry-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.audit-entry-head strong {
+    font-size: .82rem;
+}
+
+.audit-entry-head time {
+    color: var(--muted);
+    font-size: .68rem;
+    white-space: nowrap;
+}
+
+.audit-entry > p {
+    margin: 6px 0 4px;
+    font-size: .78rem;
+}
+
+.audit-changes {
+    margin-top: 10px;
+    border-top: 1px solid var(--line);
+    padding-top: 9px;
+}
+
+.audit-changes summary {
+    color: var(--blue);
+    cursor: pointer;
+    font-size: .72rem;
+    font-weight: 800;
+}
+
+.audit-changes > div {
+    display: grid;
+    gap: 6px;
+    margin-top: 9px;
+}
+
+.audit-changes p {
+    display: grid;
+    grid-template-columns: minmax(120px, .8fr) minmax(0, 1fr) auto minmax(0, 1fr);
+    gap: 7px;
+    align-items: start;
+    margin: 0;
+    font-size: .7rem;
+}
+
+.audit-changes span {
+    overflow-wrap: anywhere;
+}
+
+.audit-loading {
+    color: var(--muted);
+}
+
+.audit-error {
+    color: var(--red);
+}
+
+@media (max-width: 650px) {
+    .audit-summary {
+        grid-template-columns: 1fr;
+    }
+
+    .audit-entry-head {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 4px;
+    }
+
+    .audit-changes p {
+        grid-template-columns: 1fr;
+    }
+
+    .audit-changes p span[aria-hidden="true"] {
+        display: none;
+    }
+}
