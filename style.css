@@ -2026,3 +2026,123 @@ textarea {
     flex-direction: column;
   }
 }
+
+
+/* ==========================
+   Rollen und Administration
+========================== */
+
+.role-badge {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 4px;
+  padding: 3px 7px;
+  border-radius: 999px;
+  background: #edf4f7;
+  color: var(--blue);
+  font-size: .62rem;
+  font-weight: 800;
+}
+
+.role-badge[data-role="admin"] {
+  background: #fff1d6;
+  color: #895400;
+}
+
+.danger-button {
+  border: 1px solid #e2a7a3;
+  background: #fff2f1;
+  color: #a8322b;
+}
+
+.danger-button:hover {
+  background: #ffe4e2;
+}
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.6fr) minmax(280px, .8fr);
+  gap: 16px;
+}
+
+.admin-employee-list {
+  display: grid;
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.admin-employee-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 12px;
+  padding: 13px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #fff;
+}
+
+.admin-employee-row > div {
+  display: grid;
+  gap: 3px;
+}
+
+.admin-employee-row span {
+  color: var(--muted);
+  font-size: .72rem;
+}
+
+.admin-employee-row.inactive {
+  opacity: .65;
+  background: #f6f7f8;
+}
+
+.admin-info-card {
+  align-self: start;
+}
+
+.admin-info-card > p {
+  line-height: 1.55;
+}
+
+.admin-role-example {
+  display: grid;
+  gap: 6px;
+  margin: 14px 0;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #f8fafb;
+}
+
+.admin-warning {
+  padding: 12px;
+  border-radius: 10px;
+  background: #fff5e5;
+  color: #784d00;
+}
+
+.checkbox-row {
+  display: flex !important;
+  align-items: center;
+  gap: 10px;
+}
+
+.checkbox-row input {
+  width: 18px;
+  height: 18px;
+}
+
+@media (max-width: 900px) {
+  .admin-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-employee-row {
+    grid-template-columns: 1fr auto;
+  }
+
+  .admin-employee-row button {
+    grid-column: 1 / -1;
+  }
+}
