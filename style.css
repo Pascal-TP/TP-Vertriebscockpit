@@ -1778,3 +1778,26 @@ textarea {
         display: none;
     }
 }
+
+
+/* ==========================
+   Zentrale Datensatz-Metadaten
+========================== */
+
+.record-audit {
+    display: block;
+    margin-top: 6px;
+    color: var(--muted);
+    font-size: .64rem;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+}
+
+.appointment-card .record-audit {
+    margin-top: 4px;
+}
+
+.followup-meta {
+    display: grid;
+    gap: 4px;
+}
