@@ -1,5 +1,7 @@
 "use strict";
 
+let crmInitialized = false;
+
 function renderAll() {
   renderDashboard();
   renderCustomers();
@@ -8,7 +10,18 @@ function renderAll() {
   renderFollowups();
 }
 
-fillOwnerSelects();
-bindEvents();
-setupCanvas();
-renderAll();
+function initializeCrm() {
+  if (crmInitialized) {
+    renderAll();
+    return;
+  }
+
+  crmInitialized = true;
+
+  fillOwnerSelects();
+  bindEvents();
+  setupCanvas();
+  renderAll();
+}
+
+window.addEventListener("crm-auth-ready", initializeCrm);
