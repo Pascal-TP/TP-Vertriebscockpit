@@ -117,6 +117,16 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "edit-activity") {
+    openActivityEditForm(recordId);
+    return;
+  }
+
+  if (action === "delete-activity") {
+    deleteActivity(recordId);
+    return;
+  }
+
   openForm(action, {
     customerId: recordId,
   });

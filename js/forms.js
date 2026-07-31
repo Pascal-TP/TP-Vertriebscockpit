@@ -34,6 +34,7 @@ const formConfigs = {
 
   activity: {
     title: "Kontakt erfassen",
+    editTitle: "Aktivität bearbeiten",
     subtitle: "Telefonat, E-Mail, Besuch oder Akquise dokumentieren",
     fields: [
       ["customerId", "Kunde", "customer", true],
@@ -244,7 +245,7 @@ function saveForm(type, values, options = {}) {
   }
 
   if (type === "activity") {
-    saveActivity(values);
+    saveActivity(values, mode, recordId);
   }
 
   if (type === "appointment") {
@@ -291,31 +292,37 @@ function saveCustomer(values, mode, recordId) {
   currentCustomerId = values.id;
 }
 
-function saveActivity(values) {
+function saveActivity(values, mode, recordId) {
+  if (mode === "edit") {
+    const activity = activityById(recordId);
+
+    if (!activity) {
+      toast("Die Aktivität wurde nicht gefunden.");
+      return;
+    }
+
+    const previousCustomerId = activity.customerId;
+
+    Object.assign(activity, values);
+
+    syncCustomerLastContact(previousCustomerId);
+    syncCustomerLastContact(activity.customerId);
+
+    applyActivityResultToCustomer(
+      customerById(activity.customerId),
+      activity.result,
+    );
+
+    return;
+  }
+
   values.id = `A-${Date.now()}`;
   data.activities.push(values);
 
   const customer = customerById(values.customerId);
 
-  if (customer) {
-    customer.lastContact = values.date;
-
-    if (values.result === "Termin vereinbart") {
-      customer.pipeline = "04 Termin vereinbart";
-    }
-
-    if (values.result === "Bedarf erkannt") {
-      customer.pipeline = "05 Bedarf qualifiziert";
-    }
-
-    if (values.result === "Angebot erstellt") {
-      customer.pipeline = "06 Angebot";
-    }
-
-    if (values.result === "Auftrag erhalten") {
-      customer.pipeline = "08 Gewonnen";
-    }
-  }
+  syncCustomerLastContact(values.customerId);
+  applyActivityResultToCustomer(customer, values.result);
 
   if (values.next && values.due) {
     data.followups.push({
