@@ -1376,3 +1376,19 @@ textarea {
     font-size: .78rem;
     text-align: center;
 }
+
+/* ==========================
+   Aktivitäten-Aktionen
+========================== */
+
+.table-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    min-width: 145px;
+}
+
+.table-actions .text-button {
+    font-size: .7rem;
+}
