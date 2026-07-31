@@ -237,79 +237,130 @@ function bindSearchEvents() {
 }
 
 function bindImportEvents() {
-  $("#csvFile").onchange = (event) => {
-    const file = event.target.files[0];
-
-    $("#fileName").textContent = file ? file.name : "oder hier ablegen";
-    $("#importButton").disabled = !file;
+  const resetPreview = () => {
+    pendingImport = [];
+    $("#importPreview thead").innerHTML = "";
+    $("#importPreview tbody").innerHTML = "";
+    $("#confirmImportButton").classList.add("hidden");
   };
 
-  $("#importButton").onclick = () => {
+  $("#csvFile").onchange = (event) => {
+    const file = event.target.files[0];
+    resetPreview();
+    $("#fileName").textContent = file ? file.name : "oder hier ablegen";
+    $("#importButton").disabled = !file;
+    $("#importSummary").textContent = file
+      ? "Datei ausgewählt – Vorschau noch nicht geprüft"
+      : "Noch keine Datei ausgewählt";
+  };
+
+  $("#importButton").onclick = async () => {
     const file = $("#csvFile").files[0];
+    if (!file) return;
 
-    if (!file) {
-      return;
-    }
+    const button = $("#importButton");
+    button.disabled = true;
 
-    const reader = new FileReader();
-
-    reader.onload = () => {
-      const rawRows = parseCSV(reader.result);
-
-      pendingImport = mapImport(rawRows, $("#importType").value);
+    try {
+      const text = decodeCSVFile(await file.arrayBuffer());
+      const rawRows = parseCSV(text);
+      pendingImport = classifyImportRows(mapImport(rawRows, $("#importType").value));
 
       const columns = [
+        "customerNumber",
         "name",
         "street",
         "zip",
         "city",
         "contact",
-        "phone",
         "email",
+        "phone",
+        "mobile",
+        "importStatus",
       ];
 
       $("#importPreview thead").innerHTML =
-        "<tr>" +
-        columns.map((column) => `<th>${column}</th>`).join("") +
-        "</tr>";
+        "<tr>" + columns.map((column) => `<th>${IMPORT_COLUMN_LABELS[column]}</th>`).join("") + "</tr>";
 
       $("#importPreview tbody").innerHTML = pendingImport
-        .slice(0, 8)
-        .map(
-          (row) =>
-            "<tr>" +
-            columns
-              .map((column) => `<td>${row[column] || ""}</td>`)
-              .join("") +
-            "</tr>",
-        )
+        .map((row) => {
+          const reason = row.importReasons.length ? ` title="${row.importReasons.join("; ").replace(/\"/g, "&quot;")}"` : "";
+          return `<tr class="import-row ${row.importable ? "importable" : "skipped"}">` +
+            columns.map((column) => {
+              if (column === "importStatus") {
+                return `<td${reason}><span class="import-status ${importStatusClass(row[column])}">${row[column]}</span></td>`;
+              }
+              return `<td>${String(row[column] || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`;
+            }).join("") +
+            "</tr>";
+        })
         .join("");
 
-      $("#importSummary").textContent =
-        `${pendingImport.length} Datensätze erkannt`;
+      const counts = pendingImport.reduce((result, row) => {
+        result[row.importStatus] = (result[row.importStatus] || 0) + 1;
+        return result;
+      }, {});
+      const importableCount = pendingImport.filter((row) => row.importable).length;
+      const skippedCount = pendingImport.length - importableCount;
 
+      $("#importSummary").innerHTML =
+        `<strong>${pendingImport.length}</strong> Datensätze geprüft · ` +
+        `<strong>${importableCount}</strong> neu · ` +
+        `<strong>${skippedCount}</strong> werden nicht übernommen` +
+        (Object.keys(counts).length
+          ? `<br><small>${Object.entries(counts).map(([status, count]) => `${status}: ${count}`).join(" · ")}</small>`
+          : "");
+
+      $("#confirmImportButton").textContent = `${importableCount} neue Datensätze übernehmen`;
+      $("#confirmImportButton").disabled = importableCount === 0;
       $("#confirmImportButton").classList.remove("hidden");
-    };
-
-    reader.readAsText(file, "utf-8");
+    } catch (error) {
+      console.error("CSV preview failed:", error);
+      resetPreview();
+      $("#importSummary").textContent = "Die Datei konnte nicht gelesen werden.";
+      toast("Die CSV-Datei konnte nicht verarbeitet werden.");
+    } finally {
+      button.disabled = false;
+    }
   };
 
   $("#confirmImportButton").onclick = async () => {
-    if (!pendingImport.length) {
-      return;
-    }
+    const newCustomers = pendingImport
+      .filter((row) => row.importable)
+      .map(({ sourceRow, importStatus, importReasons, existingCustomerId, importable, ...customer }) => customer);
+
+    if (!newCustomers.length) return;
 
     const button = $("#confirmImportButton");
     button.disabled = true;
 
     try {
-      await window.crmFirestore.importCustomers(pendingImport, "imported");
+      // Unmittelbar vor dem Schreiben erneut prüfen. Damit werden auch Datensätze
+      // berücksichtigt, die seit Erstellung der Vorschau neu angelegt wurden.
+      const finalRows = classifyImportRows(newCustomers.map((customer, index) => ({
+        ...customer,
+        sourceRow: index + 2,
+      })));
+      const finalCustomers = finalRows
+        .filter((row) => row.importable)
+        .map(({ sourceRow, importStatus, importReasons, existingCustomerId, importable, ...customer }) => customer);
+
+      if (!finalCustomers.length) {
+        $("#importSummary").textContent = "Keine neuen Datensätze mehr vorhanden. Bestehende Kunden wurden nicht verändert.";
+        toast("Es wurden keine bestehenden Kunden überschrieben.");
+        return;
+      }
+
+      await window.crmFirestore.importCustomers(finalCustomers, "imported");
+      const skippedAtCommit = newCustomers.length - finalCustomers.length;
       pendingImport = [];
 
       $("#confirmImportButton").classList.add("hidden");
-      $("#importSummary").textContent = "Import abgeschlossen";
+      $("#importSummary").textContent =
+        `${finalCustomers.length} neue Kunden importiert` +
+        (skippedAtCommit ? ` · ${skippedAtCommit} zwischenzeitlich erkannte Dublette(n) ausgelassen` : "");
 
-      toast("CSV-Datensätze wurden zentral übernommen.");
+      toast(`${finalCustomers.length} neue Kundendatensätze wurden ergänzt.`);
       showView("customers");
     } catch (error) {
       console.error("CSV import failed:", error);

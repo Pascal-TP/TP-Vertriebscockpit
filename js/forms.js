@@ -6,6 +6,7 @@ const formConfigs = {
     editTitle: "Kunde bearbeiten",
     subtitle: "Stammdaten und Vertriebszuordnung",
     fields: [
+      ["customerNumber", "Kundennummer", "text"],
       ["name", "Firma / Kundenname", "text", true],
       [
         "type",

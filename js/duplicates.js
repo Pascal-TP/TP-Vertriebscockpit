@@ -36,11 +36,23 @@ function similarity(a, b) {
   return union ? intersection / union : 0;
 }
 
-function findCustomerDuplicates(candidate, excludedId = "") {
+function findCustomerDuplicates(candidate, excludedId = "", options = {}) {
+  const includeArchived = options.includeArchived === true;
+
   return data.customers
-    .filter((customer) => customer.id !== excludedId && customer.archived !== true)
+    .filter((customer) =>
+      customer.id !== excludedId && (includeArchived || customer.archived !== true),
+    )
     .map((customer) => {
       const reasons = [];
+
+      if (
+        String(candidate.customerNumber || "").trim() &&
+        String(candidate.customerNumber || "").trim().toLowerCase() ===
+          String(customer.customerNumber || "").trim().toLowerCase()
+      ) {
+        reasons.push("identische Kundennummer");
+      }
 
       if (
         normalizeEmail(candidate.email) &&

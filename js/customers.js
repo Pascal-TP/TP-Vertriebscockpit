@@ -20,6 +20,7 @@ function renderCustomers() {
       owner === "all" || customer.owner === owner;
 
     const matchesSearch = [
+      customer.customerNumber,
       customer.name,
       customer.city,
       customer.contact,
@@ -94,7 +95,7 @@ function customerListItem(customer) {
 
       <div>
         <h3>${customer.name}</h3>
-        <p>${customer.zip} ${customer.city} · ${customer.owner}</p>
+        <p>${customer.customerNumber ? `Kundennr. ${customer.customerNumber} · ` : ""}${customer.zip} ${customer.city}${customer.owner ? ` · ${customer.owner}` : ""}</p>
       </div>
 
       <span class="status-pill ${statusClass}">
@@ -238,6 +239,11 @@ function renderCustomerDetail(id) {
     <div class="detail-body">
       <div class="info-grid">
         <div class="info-cell">
+          <small>Kundennummer</small>
+          <strong>${customer.customerNumber || "–"}</strong>
+        </div>
+
+        <div class="info-cell">
           <small>Ansprechpartner</small>
           <strong>${customer.contact || "–"}</strong>
         </div>
@@ -254,12 +260,12 @@ function renderCustomerDetail(id) {
 
         <div class="info-cell">
           <small>Außendienst</small>
-          <strong>${customer.owner}</strong>
+          <strong>${customer.owner || "–"}</strong>
         </div>
 
         <div class="info-cell">
           <small>Potenzial</small>
-          <strong>${customer.potential}</strong>
+          <strong>${customer.potential || "–"}</strong>
         </div>
 
         <div class="info-cell">
