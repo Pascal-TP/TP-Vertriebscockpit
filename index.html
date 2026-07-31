@@ -87,6 +87,7 @@
         <button class="nav-button" data-view="appointments"><span>□</span> Termine</button>
         <button class="nav-button" data-view="activities"><span>↻</span> Aktivitäten</button>
         <button class="nav-button" data-view="followups"><span>✓</span> Wiedervorlagen</button>
+        <button class="nav-button" data-view="history"><span>≡</span> Historie</button>
         <button class="nav-button" data-view="import"><span>⇧</span> CSV-Import</button>
       </nav>
       <div class="sidebar-card">
@@ -94,7 +95,7 @@
         <strong id="locationLabel">Dashboard</strong>
         <span id="locationHint">Vertriebsaktivitäten im Überblick</span>
       </div>
-      <div class="sidebar-footer">Firebase-Login · lokale Demodaten</div>
+      <div class="sidebar-footer">Zentrale CRM-Datenbank · Firestore</div>
     </aside>
 
     <main class="main-content">
@@ -105,6 +106,9 @@
           <p id="pageSubtitle">Aktivitäten, Termine und offene Aufgaben im Überblick</p>
         </div>
         <div class="topbar-actions">
+          <div class="connection-status" id="connectionStatus" data-state="online">
+            <span></span><strong>Online</strong>
+          </div>
           <label class="global-search"><span>⌕</span><input id="globalSearch" type="search"
               placeholder="Kunde, Ort oder Ansprechpartner"></label>
           <button class="primary-button" id="quickActivityButton">+ Kontakt erfassen</button>
@@ -131,7 +135,6 @@
           <label>Außendienst<select id="dashboardOwner">
               <option value="all">Alle</option>
             </select></label>
-          <button class="secondary-button" id="resetDemoButton">Demodaten zurücksetzen</button>
         </div>
         <div class="kpi-grid" id="kpiGrid"></div>
         <div class="dashboard-grid">
@@ -269,6 +272,54 @@
         <div class="followup-board" id="followupBoard"></div>
       </section>
 
+
+      <section class="view" id="view-history">
+        <div class="toolbar card history-toolbar">
+          <div>
+            <h2>Globale CRM-Historie</h2>
+            <p>Änderungen aller Kunden, Aktivitäten, Termine und Wiedervorlagen</p>
+          </div>
+          <button class="secondary-button" id="refreshHistoryButton" type="button">Aktualisieren</button>
+        </div>
+
+        <article class="card history-filter-card">
+          <div class="history-filters">
+            <label>Von<input type="date" id="historyDateFrom"></label>
+            <label>Bis<input type="date" id="historyDateTo"></label>
+            <label>Benutzer<select id="historyUserFilter"><option value="all">Alle Benutzer</option></select></label>
+            <label>Kunde<select id="historyCustomerFilter"><option value="all">Alle Kunden</option></select></label>
+            <label>Datensatzart<select id="historyEntityFilter">
+              <option value="all">Alle Arten</option>
+              <option value="customer">Kunde</option>
+              <option value="activity">Aktivität</option>
+              <option value="appointment">Termin</option>
+              <option value="followup">Wiedervorlage</option>
+            </select></label>
+            <label>Aktion<select id="historyActionFilter">
+              <option value="all">Alle Aktionen</option>
+              <option value="created">Angelegt</option>
+              <option value="updated">Bearbeitet</option>
+              <option value="deleted">Gelöscht</option>
+              <option value="archived">Archiviert</option>
+              <option value="restored">Wiederhergestellt</option>
+              <option value="completed">Erledigt</option>
+              <option value="reopened">Wieder geöffnet</option>
+              <option value="imported">Importiert</option>
+              <option value="system-updated">Automatisch aktualisiert</option>
+            </select></label>
+            <label class="history-search">Suche<input type="search" id="historySearch" placeholder="Kunde, Benutzer oder Inhalt"></label>
+          </div>
+          <div class="history-filter-footer">
+            <strong id="historyCount">0 Einträge</strong>
+            <button class="text-button" id="resetHistoryFilters" type="button">Filter zurücksetzen</button>
+          </div>
+        </article>
+
+        <div class="global-history-list" id="globalHistoryList">
+          <article class="card empty-state"><p>Historie wird geladen …</p></article>
+        </div>
+      </section>
+
       <section class="view" id="view-import">
         <div class="import-grid">
           <article class="card import-card">
@@ -347,6 +398,33 @@
         class="primary-button" id="saveNoteButton">Notiz übernehmen</button></div>
   </dialog>
 
+
+  <dialog id="duplicateDialog" class="duplicate-dialog">
+    <div class="dialog-header">
+      <div>
+        <h2>Mögliche Dublette gefunden</h2>
+        <p>Bitte prüfen Sie den bereits vorhandenen Kundendatensatz.</p>
+      </div>
+      <button class="icon-button" id="closeDuplicateDialog" type="button" aria-label="Schließen">×</button>
+    </div>
+    <div class="dialog-body">
+      <div id="duplicateDetails"></div>
+    </div>
+    <div class="dialog-footer duplicate-actions">
+      <button class="secondary-button" id="cancelDuplicateButton" type="button">Abbrechen</button>
+      <button class="secondary-button" id="openDuplicateButton" type="button">Vorhandenen Kunden öffnen</button>
+      <button class="primary-button" id="saveDuplicateAnywayButton" type="button">Trotzdem speichern</button>
+    </div>
+  </dialog>
+
+  <div class="loading-overlay auth-hidden" id="loadingOverlay" aria-live="polite">
+    <div class="loading-card">
+      <div class="loading-spinner"></div>
+      <strong>Zentrale CRM-Daten werden geladen …</strong>
+      <span>Bitte einen Moment warten.</span>
+    </div>
+  </div>
+
   <div class="toast" id="toast"></div>
   <script src="js/config.js"></script>
   <script src="js/state.js"></script>
@@ -356,6 +434,8 @@
   <script src="js/appointments.js"></script>
   <script src="js/activities.js"></script>
   <script src="js/followups.js"></script>
+  <script src="js/duplicates.js"></script>
+  <script src="js/history.js"></script>
   <script src="js/forms.js"></script>
   <script src="js/maps.js"></script>
   <script src="js/import.js"></script>
