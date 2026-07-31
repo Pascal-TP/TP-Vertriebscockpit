@@ -1314,3 +1314,38 @@ textarea {
         width: 100%
     }
 }
+
+/* ==========================
+   Terminaktionen
+========================== */
+
+.compact-actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+.appointment-actions {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+    padding-top: 7px;
+    border-top: 1px solid var(--line);
+}
+
+.appointment-actions .text-button,
+.compact-actions .text-button {
+    font-size: .69rem;
+}
+
+.danger-text-button {
+    color: var(--red);
+}
+
+.danger-text-button:hover {
+    text-decoration: underline;
+}
