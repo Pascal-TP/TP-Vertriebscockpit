@@ -236,36 +236,56 @@ function openForm(type, preset = {}, options = {}) {
   $("#formDialog").showModal();
 }
 
-function saveForm(type, values, options = {}) {
+async function saveForm(type, values, options = {}) {
   const mode = options.mode || "create";
   const recordId = options.recordId || "";
 
-  if (type === "customer") {
-    saveCustomer(values, mode, recordId);
+  try {
+    if (type === "customer") {
+      const changed = await saveCustomer(values, mode, recordId);
+
+      if (changed === false) {
+        toast("Es wurden keine Änderungen festgestellt.");
+      } else {
+        toast(
+          mode === "edit"
+            ? "Die Änderungen wurden gespeichert."
+            : "Der Kunde wurde gespeichert.",
+        );
+      }
+
+      return true;
+    }
+
+    if (type === "activity") {
+      saveActivity(values, mode, recordId);
+    }
+
+    if (type === "appointment") {
+      saveAppointment(values, mode, recordId);
+    }
+
+    if (type === "followup") {
+      saveFollowup(values, mode, recordId);
+    }
+
+    saveData();
+
+    toast(
+      mode === "edit"
+        ? "Die Änderungen wurden gespeichert."
+        : "Der Eintrag wurde gespeichert.",
+    );
+
+    return true;
+  } catch (error) {
+    console.error("Saving form failed:", error);
+    toast("Der Eintrag konnte nicht gespeichert werden.");
+    return false;
   }
-
-  if (type === "activity") {
-    saveActivity(values, mode, recordId);
-  }
-
-  if (type === "appointment") {
-    saveAppointment(values, mode, recordId);
-  }
-
-  if (type === "followup") {
-    saveFollowup(values, mode, recordId);
-  }
-
-  saveData();
-
-  toast(
-    mode === "edit"
-      ? "Die Änderungen wurden gespeichert."
-      : "Der Eintrag wurde gespeichert.",
-  );
 }
 
-function saveCustomer(values, mode, recordId) {
+async function saveCustomer(values, mode, recordId) {
   values.trades = (values.trades || "")
     .split(",")
     .map((trade) => trade.trim())
@@ -275,23 +295,36 @@ function saveCustomer(values, mode, recordId) {
     const customer = customerById(recordId);
 
     if (!customer) {
-      toast("Der Kunde wurde nicht gefunden.");
-      return;
+      throw new Error("Der Kunde wurde nicht gefunden.");
     }
 
-    Object.assign(customer, values);
+    const updatedCustomer = {
+      ...customer,
+      ...values,
+      id: customer.id,
+    };
+
+    const changed = await window.crmFirestore.updateCustomer(
+      customer,
+      updatedCustomer,
+    );
+
     currentCustomerId = customer.id;
-    return;
+    return changed;
   }
 
-  values.id = `K-${Date.now()}`;
-  values.lastContact = "";
-  values.nextAppointment = "";
-  values.archived = false;
-  values.archivedAt = "";
+  const customer = {
+    ...values,
+    id: `K-${Date.now()}`,
+    lastContact: "",
+    nextAppointment: "",
+    archived: false,
+    archivedAt: "",
+  };
 
-  data.customers.push(values);
-  currentCustomerId = values.id;
+  await window.crmFirestore.createCustomer(customer);
+  currentCustomerId = customer.id;
+  return true;
 }
 
 function saveActivity(values, mode, recordId) {
@@ -310,9 +343,17 @@ function saveActivity(values, mode, recordId) {
     syncCustomerLastContact(previousCustomerId);
     syncCustomerLastContact(activity.customerId);
 
-    applyActivityResultToCustomer(
-      customerById(activity.customerId),
-      activity.result,
+    const changedCustomer = customerById(activity.customerId);
+
+    applyActivityResultToCustomer(changedCustomer, activity.result);
+
+    window.crmFirestore.updateCustomerSystemFields(
+      changedCustomer,
+      {
+        lastContact: changedCustomer?.lastContact || "",
+        pipeline: changedCustomer?.pipeline || "",
+      },
+      "Kundendaten aus einer bearbeiteten Aktivität aktualisiert",
     );
 
     return;
@@ -325,6 +366,15 @@ function saveActivity(values, mode, recordId) {
 
   syncCustomerLastContact(values.customerId);
   applyActivityResultToCustomer(customer, values.result);
+
+  window.crmFirestore.updateCustomerSystemFields(
+    customer,
+    {
+      lastContact: customer?.lastContact || "",
+      pipeline: customer?.pipeline || "",
+    },
+    "Kundendaten aus einer neuen Aktivität aktualisiert",
+  );
 
   if (values.next && values.due) {
     data.followups.push({
@@ -355,6 +405,18 @@ function saveAppointment(values, mode, recordId) {
     syncCustomerNextAppointment(previousCustomerId);
     syncCustomerNextAppointment(appointment.customerId);
 
+    [previousCustomerId, appointment.customerId]
+      .filter((id, index, ids) => id && ids.indexOf(id) === index)
+      .forEach((customerId) => {
+        const customer = customerById(customerId);
+
+        window.crmFirestore.updateCustomerSystemFields(
+          customer,
+          { nextAppointment: customer?.nextAppointment || "" },
+          "Nächster Kundentermin automatisch aktualisiert",
+        );
+      });
+
     return;
   }
 
@@ -362,6 +424,14 @@ function saveAppointment(values, mode, recordId) {
   data.appointments.push(values);
 
   syncCustomerNextAppointment(values.customerId);
+
+  const customer = customerById(values.customerId);
+
+  window.crmFirestore.updateCustomerSystemFields(
+    customer,
+    { nextAppointment: customer?.nextAppointment || "" },
+    "Nächster Kundentermin automatisch aktualisiert",
+  );
 }
 
 function saveFollowup(values, mode, recordId) {

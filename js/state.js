@@ -9,17 +9,45 @@ let activeNoteTarget = null;
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
 const customerById = (id) => data.customers.find((c) => c.id === id);
-const formatDate = (value) =>
-  value
-    ? new Intl.DateTimeFormat("de-DE").format(new Date(value + "T12:00:00"))
-    : "–";
+
+const formatDate = (value) => {
+  if (!value) {
+    return "–";
+  }
+
+  const date = String(value).includes("T")
+    ? new Date(value)
+    : new Date(`${value}T12:00:00`);
+
+  return Number.isNaN(date.getTime())
+    ? "–"
+    : new Intl.DateTimeFormat("de-DE").format(date);
+};
+
+const formatDateTime = (value) => {
+  if (!value) {
+    return "–";
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? "–"
+    : new Intl.DateTimeFormat("de-DE", {
+        dateStyle: "medium",
+        timeStyle: "short",
+      }).format(date);
+};
+
 const daysBetween = (value) =>
   value
-    ? Math.floor((new Date() - new Date(value + "T12:00:00")) / 86400000)
+    ? Math.floor((new Date() - new Date(`${value}T12:00:00`)) / 86400000)
     : 9999;
+
 const initials = (name) =>
-  name
+  String(name || "")
     .split(/\s+/)
+    .filter(Boolean)
     .map((x) => x[0])
     .slice(0, 2)
     .join("")
@@ -34,16 +62,49 @@ function loadData() {
     return structuredClone(seedData);
   }
 }
+
 function saveData() {
+  /*
+   * Aktivitäten, Termine und Wiedervorlagen bleiben in diesem Ausbau
+   * noch lokal. Die Kundenliste wird zusätzlich als lokaler Cache
+   * mitgespeichert, ist aber nicht mehr die führende Datenquelle.
+   */
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   renderAll();
 }
+
+function replaceCustomersFromFirestore(customers) {
+  data.customers = customers;
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+
+  if (
+    currentCustomerId &&
+    !data.customers.some((customer) => customer.id === currentCustomerId)
+  ) {
+    currentCustomerId = null;
+  }
+
+  if (typeof renderAll === "function") {
+    renderAll();
+  }
+}
+
+function getLocalCustomersForMigration() {
+  return structuredClone(data.customers || []);
+}
+
+window.crmStateBridge = {
+  replaceCustomersFromFirestore,
+  getLocalCustomersForMigration,
+};
+
 function toast(message) {
   const el = $("#toast");
   el.textContent = message;
   el.classList.add("show");
   setTimeout(() => el.classList.remove("show"), 2400);
 }
+
 function getWeek(d) {
   const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
   date.setUTCDate(date.getUTCDate() + 4 - (date.getUTCDay() || 7));

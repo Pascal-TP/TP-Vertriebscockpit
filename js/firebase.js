@@ -1,5 +1,6 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
+import { getFirestore } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
 /*
  * Hauptprojekt des Vertriebscockpits
@@ -37,6 +38,7 @@ const blazeConfig = {
 
 const crmApp = initializeApp(crmConfig);
 const crmAuth = getAuth(crmApp);
+const crmDb = getFirestore(crmApp);
 
 /*
  * Benannte zweite App. Noch werden weder Storage noch Functions importiert.
@@ -47,5 +49,6 @@ const blazeApp = initializeApp(blazeConfig, "kalkproBlaze");
 export {
   crmApp,
   crmAuth,
+  crmDb,
   blazeApp,
 };

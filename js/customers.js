@@ -254,6 +254,20 @@ function renderCustomerDetail(id) {
         </div>
       </div>
 
+      <div class="audit-summary">
+        <div>
+          <small>Angelegt</small>
+          <strong>${formatDateTime(customer.createdAt)}</strong>
+          <span>${customer.createdByEmail || "–"}</span>
+        </div>
+
+        <div>
+          <small>Zuletzt geändert</small>
+          <strong>${formatDateTime(customer.updatedAt)}</strong>
+          <span>${customer.updatedByEmail || "–"}</span>
+        </div>
+      </div>
+
       <section>
         <h3 class="section-title">Relevante Gewerke</h3>
 
@@ -271,6 +285,24 @@ function renderCustomerDetail(id) {
       <section>
         <h3 class="section-title">Kurznotiz</h3>
         <p>${customer.note || "Keine Notiz vorhanden."}</p>
+      </section>
+
+      <section>
+        <div class="section-title-row">
+          <h3 class="section-title">Änderungshistorie</h3>
+          <button
+            type="button"
+            class="text-button"
+            data-action="refresh-customer-history"
+            data-id="${customer.id}"
+          >
+            Aktualisieren
+          </button>
+        </div>
+
+        <div id="customerAuditHistory" class="audit-history">
+          <p class="audit-loading">Historie wird geladen …</p>
+        </div>
       </section>
 
       <section>
@@ -309,6 +341,144 @@ function renderCustomerDetail(id) {
   $$(".customer-row").forEach((row) =>
     row.classList.toggle("active", row.dataset.id === id),
   );
+
+  renderCustomerAuditHistory(id);
+}
+
+async function renderCustomerAuditHistory(customerId) {
+  const container = $("#customerAuditHistory");
+
+  if (!container || currentCustomerId !== customerId) {
+    return;
+  }
+
+  container.innerHTML = '<p class="audit-loading">Historie wird geladen …</p>';
+
+  try {
+    const entries = await window.crmFirestore.loadCustomerHistory(customerId);
+
+    if (!container || currentCustomerId !== customerId) {
+      return;
+    }
+
+    container.innerHTML = entries.length
+      ? entries
+          .map(
+            (entry) => `
+              <article class="audit-entry">
+                <div class="audit-entry-head">
+                  <strong>${historyActionLabel(entry.action)}</strong>
+                  <time>${formatDateTime(entry.changedAt)}</time>
+                </div>
+
+                <p>${entry.summary || "Kundendaten geändert"}</p>
+
+                <small>
+                  ${entry.changedByName || entry.changedByEmail || "Unbekannt"}
+                  ${
+                    entry.changedByEmail &&
+                    entry.changedByName !== entry.changedByEmail
+                      ? ` · ${entry.changedByEmail}`
+                      : ""
+                  }
+                </small>
+
+                ${renderHistoryChanges(entry.changes)}
+              </article>
+            `,
+          )
+          .join("")
+      : "<p>Noch keine Änderungshistorie vorhanden.</p>";
+  } catch (error) {
+    console.error("History loading failed:", error);
+    container.innerHTML =
+      '<p class="audit-error">Die Änderungshistorie konnte nicht geladen werden.</p>';
+  }
+}
+
+function historyActionLabel(action) {
+  const labels = {
+    created: "Angelegt",
+    updated: "Bearbeitet",
+    archived: "Archiviert",
+    restored: "Wiederhergestellt",
+    imported: "CSV-Import",
+    migrated: "Lokale Übernahme",
+    "system-updated": "Automatisch aktualisiert",
+  };
+
+  return labels[action] || "Geändert";
+}
+
+function renderHistoryChanges(changes = {}) {
+  const labels = {
+    name: "Firma / Kundenname",
+    type: "Kundengruppe",
+    street: "Straße",
+    zip: "PLZ",
+    city: "Ort",
+    contact: "Ansprechpartner",
+    phone: "Telefon",
+    mobile: "Mobil",
+    email: "E-Mail",
+    owner: "Außendienst",
+    potential: "Potenzial",
+    pipeline: "Pipeline",
+    trades: "Gewerke",
+    note: "Kurznotiz",
+    lastContact: "Letzter Kontakt",
+    nextAppointment: "Nächster Termin",
+    archived: "Archivstatus",
+    archivedAt: "Archiviert am",
+  };
+
+  const rows = Object.entries(changes);
+
+  if (!rows.length) {
+    return "";
+  }
+
+  return `
+    <details class="audit-changes">
+      <summary>${rows.length} Änderung${rows.length === 1 ? "" : "en"}</summary>
+
+      <div>
+        ${rows
+          .map(([field, values]) => {
+            const oldValue = formatHistoryValue(values.oldValue);
+            const newValue = formatHistoryValue(values.newValue);
+
+            return `
+              <p>
+                <strong>${labels[field] || field}:</strong>
+                <span>${oldValue}</span>
+                <span aria-hidden="true">→</span>
+                <span>${newValue}</span>
+              </p>
+            `;
+          })
+          .join("")}
+      </div>
+    </details>
+  `;
+}
+
+function formatHistoryValue(value) {
+  if (Array.isArray(value)) {
+    return value.length ? value.join(", ") : "–";
+  }
+
+  if (value === true) {
+    return "Ja";
+  }
+
+  if (value === false) {
+    return "Nein";
+  }
+
+  return value === null || value === undefined || value === ""
+    ? "–"
+    : String(value);
 }
 
 function renderEmptyCustomerDetail() {
@@ -359,7 +529,7 @@ function openCustomerEditForm(customerId) {
   );
 }
 
-function archiveCustomer(customerId) {
+async function archiveCustomer(customerId) {
   const customer = customerById(customerId);
 
   if (!customer) {
@@ -385,11 +555,18 @@ function archiveCustomer(customerId) {
   ).length;
 
   const confirmed = window.confirm(
-    `Soll der Kunde „${customer.name}“ wirklich archiviert werden?\n\n` +
-      `Verknüpfte Einträge bleiben erhalten:\n` +
-      `• ${linkedActivities} Aktivitäten\n` +
-      `• ${linkedAppointments} Termine\n` +
-      `• ${linkedFollowups} Wiedervorlagen\n\n` +
+    `Soll der Kunde „${customer.name}“ wirklich archiviert werden?
+
+` +
+      `Verknüpfte Einträge bleiben erhalten:
+` +
+      `• ${linkedActivities} Aktivitäten
+` +
+      `• ${linkedAppointments} Termine
+` +
+      `• ${linkedFollowups} Wiedervorlagen
+
+` +
       `Der Kunde kann später wiederhergestellt werden.`,
   );
 
@@ -397,18 +574,18 @@ function archiveCustomer(customerId) {
     return;
   }
 
-  customer.archived = true;
-  customer.archivedAt = iso(new Date());
-
-  currentCustomerId = null;
-
-  saveData();
-  renderEmptyCustomerDetail();
-
-  toast("Der Kunde wurde archiviert.");
+  try {
+    await window.crmFirestore.archiveCustomerRecord(customer);
+    currentCustomerId = null;
+    renderEmptyCustomerDetail();
+    toast("Der Kunde wurde archiviert.");
+  } catch (error) {
+    console.error("Customer archiving failed:", error);
+    toast("Der Kunde konnte nicht archiviert werden.");
+  }
 }
 
-function restoreCustomer(customerId) {
+async function restoreCustomer(customerId) {
   const customer = customerById(customerId);
 
   if (!customer) {
@@ -421,13 +598,13 @@ function restoreCustomer(customerId) {
     return;
   }
 
-  customer.archived = false;
-  customer.archivedAt = "";
-
-  currentCustomerId = null;
-
-  saveData();
-  renderEmptyCustomerDetail();
-
-  toast("Der Kunde wurde wiederhergestellt.");
+  try {
+    await window.crmFirestore.restoreCustomerRecord(customer);
+    currentCustomerId = null;
+    renderEmptyCustomerDetail();
+    toast("Der Kunde wurde wiederhergestellt.");
+  } catch (error) {
+    console.error("Customer restoration failed:", error);
+    toast("Der Kunde konnte nicht wiederhergestellt werden.");
+  }
 }

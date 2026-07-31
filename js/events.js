@@ -97,6 +97,11 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "refresh-customer-history") {
+    renderCustomerAuditHistory(recordId);
+    return;
+  }
+
   if (action === "edit-appointment") {
     openAppointmentEditForm(recordId);
     return;
@@ -187,7 +192,7 @@ function bindFormEvents() {
     $("#noteDialog").showModal();
   });
 
-  $("#dynamicForm").addEventListener("submit", (event) => {
+  $("#dynamicForm").addEventListener("submit", async (event) => {
     if (event.submitter?.value === "cancel") {
       return;
     }
@@ -197,24 +202,43 @@ function bindFormEvents() {
     const form = event.currentTarget;
     const values = Object.fromEntries(new FormData(form).entries());
 
-    saveForm(form.dataset.type, values, {
+    const saveButton = $("#dialogSaveButton");
+    saveButton.disabled = true;
+
+    const saved = await saveForm(form.dataset.type, values, {
       mode: form.dataset.mode,
       recordId: form.dataset.recordId,
     });
 
-    $("#formDialog").close();
+    saveButton.disabled = false;
+
+    if (saved) {
+      $("#formDialog").close();
+    }
   });
 }
 
 function bindDemoEvents() {
   $("#resetDemoButton").onclick = () => {
-    data = structuredClone(seedData);
+    const confirmed = window.confirm(
+      "Dabei werden nur die lokalen Demo-Aktivitäten, Termine und Wiedervorlagen zurückgesetzt.\n\n" +
+        "Die zentral in Firestore gespeicherten Kunden bleiben unverändert.\n\n" +
+        "Fortfahren?",
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    data.activities = structuredClone(seedData.activities);
+    data.appointments = structuredClone(seedData.appointments);
+    data.followups = structuredClone(seedData.followups);
     currentCustomerId = null;
 
     saveData();
     renderEmptyCustomerDetail();
 
-    toast("Demodaten wurden zurückgesetzt.");
+    toast("Lokale Demodaten wurden zurückgesetzt.");
   };
 }
 
@@ -288,13 +312,28 @@ function bindImportEvents() {
     reader.readAsText(file, "utf-8");
   };
 
-  $("#confirmImportButton").onclick = () => {
-    data.customers.push(...pendingImport);
-    pendingImport = [];
+  $("#confirmImportButton").onclick = async () => {
+    if (!pendingImport.length) {
+      return;
+    }
 
-    saveData();
+    const button = $("#confirmImportButton");
+    button.disabled = true;
 
-    toast("CSV-Datensätze wurden übernommen.");
-    showView("customers");
+    try {
+      await window.crmFirestore.importCustomers(pendingImport, "imported");
+      pendingImport = [];
+
+      $("#confirmImportButton").classList.add("hidden");
+      $("#importSummary").textContent = "Import abgeschlossen";
+
+      toast("CSV-Datensätze wurden zentral übernommen.");
+      showView("customers");
+    } catch (error) {
+      console.error("CSV import failed:", error);
+      toast("Der CSV-Import konnte nicht abgeschlossen werden.");
+    } finally {
+      button.disabled = false;
+    }
   };
 }

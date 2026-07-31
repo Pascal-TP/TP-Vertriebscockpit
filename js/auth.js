@@ -1,4 +1,5 @@
 import { crmAuth } from "./firebase.js";
+import { startCustomerSync } from "./firestore.js";
 
 import {
   browserLocalPersistence,
@@ -91,7 +92,7 @@ function initials(value) {
     .join("") || "TP";
 }
 
-function showAuthenticatedApp(user) {
+async function showAuthenticatedApp(user) {
   const displayName = userDisplayName(user);
 
   currentUserName.textContent = displayName;
@@ -101,11 +102,22 @@ function showAuthenticatedApp(user) {
   loginScreen.classList.add("auth-hidden");
   appShell.classList.remove("auth-hidden");
 
-  window.dispatchEvent(
-    new CustomEvent("crm-auth-ready", {
-      detail: { user },
-    }),
-  );
+  try {
+    await startCustomerSync();
+
+    window.dispatchEvent(
+      new CustomEvent("crm-auth-ready", {
+        detail: { user },
+      }),
+    );
+  } catch (error) {
+    console.error("Firestore initialization failed:", error);
+    appShell.classList.add("auth-hidden");
+    loginScreen.classList.remove("auth-hidden");
+    showLoginMessage(
+      "Die zentrale Kundendatenbank konnte nicht geladen werden. Bitte prüfen Sie die Firestore-Regeln und die Internetverbindung.",
+    );
+  }
 }
 
 function showLogin() {
