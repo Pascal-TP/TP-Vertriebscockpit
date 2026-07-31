@@ -369,8 +369,8 @@
           <article class="card import-card">
             <div class="upload-icon">⇧</div>
             <h2>Kundenlisten importieren</h2>
-            <p>CSV-Datei auswählen und einer Datenquelle zuordnen. Unterstützt Semikolon und Komma als Trennzeichen.</p>
-            <label>Datenquelle<select id="importType">
+            <p>CSV-Datei auswählen und einer Kundengruppe zuordnen. Neue Datensätze werden ergänzt; vorhandene Kunden werden niemals überschrieben.</p>
+            <label>Kundengruppe für neue Datensätze<select id="importType">
                 <option>Bestandskunde</option>
                 <option>Interessent</option>
                 <option>Kaltakquise</option>
@@ -391,7 +391,7 @@
                 <thead></thead>
                 <tbody></tbody>
               </table>
-            </div><button class="primary-button hidden" id="confirmImportButton">Datensätze übernehmen</button>
+            </div><p class="import-note">Nur Datensätze mit dem Prüfergebnis <strong>Neu</strong> werden übernommen. Bereits vorhandene oder mögliche Dubletten bleiben unverändert.</p><button class="primary-button hidden" id="confirmImportButton">Neue Datensätze übernehmen</button>
           </article>
         </div>
       </section>

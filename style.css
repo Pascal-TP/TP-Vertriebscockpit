@@ -2146,3 +2146,44 @@ textarea {
     grid-column: 1 / -1;
   }
 }
+
+
+/* CSV-Import */
+.import-note {
+  margin: 14px 0;
+  font-size: .9rem;
+  color: var(--muted);
+}
+
+.import-row.skipped {
+  opacity: .68;
+}
+
+.import-status {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  border-radius: 999px;
+  padding: 4px 9px;
+  font-size: .78rem;
+  font-weight: 700;
+  background: #eef2f5;
+}
+
+.import-status.neu {
+  background: #dff3e6;
+}
+
+.import-status.bereits-vorhanden,
+.import-status.exakte-dublette {
+  background: #f4e4e4;
+}
+
+.import-status.moegliche-dublette,
+.import-status.mögliche-dublette {
+  background: #fff0cf;
+}
+
+.import-status.fehlerhaft {
+  background: #f4d7d7;
+}
