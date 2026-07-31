@@ -1,523 +1,749 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="de">
+  <head>
+    <meta charset="UTF-8" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
+    <meta name="theme-color" content="#12354a" />
+    <title>TP Vertriebscockpit</title>
+    <link rel="stylesheet" href="style.css" />
+  </head>
 
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-  <meta name="theme-color" content="#12354a">
-  <title>TP Vertriebscockpit</title>
-  <link rel="stylesheet" href="style.css">
-</head>
+  <body>
+    <section class="login-screen" id="loginScreen">
+      <div class="login-card">
+        <div class="login-logo-panel">
+          <img
+            src="logo2.png"
+            alt="TP Holding Unternehmensgruppe"
+            class="login-logo"
+          />
+        </div>
 
-<body>
+        <div class="login-heading">
+          <span class="login-eyebrow">TP Holding GmbH</span>
+          <h1>Vertriebscockpit</h1>
+          <p>Melden Sie sich mit Ihrem persönlichen Firmenkonto an.</p>
+        </div>
 
-  <section class="login-screen" id="loginScreen">
-    <div class="login-card">
-      <div class="login-logo-panel">
-        <img src="logo2.png" alt="TP Holding Unternehmensgruppe" class="login-logo">
-      </div>
+        <form id="loginForm" class="login-form">
+          <label>
+            E-Mail-Adresse
+            <input
+              id="loginEmail"
+              type="email"
+              autocomplete="username"
+              placeholder="vorname.nachname@tpholding.de"
+              required
+            />
+          </label>
 
-      <div class="login-heading">
-        <span class="login-eyebrow">TP Holding GmbH</span>
-        <h1>Vertriebscockpit</h1>
-        <p>Melden Sie sich mit Ihrem persönlichen Firmenkonto an.</p>
-      </div>
+          <label>
+            Passwort
+            <input
+              id="loginPassword"
+              type="password"
+              autocomplete="current-password"
+              placeholder="Passwort"
+              required
+            />
+          </label>
 
-      <form id="loginForm" class="login-form">
-        <label>
-          E-Mail-Adresse
-          <input
-            id="loginEmail"
-            type="email"
-            autocomplete="username"
-            placeholder="vorname.nachname@tpholding.de"
-            required
+          <label class="remember-login">
+            <input id="rememberLogin" type="checkbox" checked />
+            <span>Auf diesem Gerät angemeldet bleiben</span>
+          </label>
+
+          <p class="login-message" id="loginMessage" role="alert"></p>
+
+          <button
+            class="primary-button login-submit"
+            id="loginButton"
+            type="submit"
           >
-        </label>
+            Anmelden
+          </button>
 
-        <label>
-          Passwort
-          <input
-            id="loginPassword"
-            type="password"
-            autocomplete="current-password"
-            placeholder="Passwort"
-            required
+          <button
+            class="text-button password-reset-button"
+            id="passwordResetButton"
+            type="button"
           >
-        </label>
+            Passwort vergessen?
+          </button>
+        </form>
 
-        <label class="remember-login">
-          <input id="rememberLogin" type="checkbox" checked>
-          <span>Auf diesem Gerät angemeldet bleiben</span>
-        </label>
-
-        <p class="login-message" id="loginMessage" role="alert"></p>
-
-        <button class="primary-button login-submit" id="loginButton" type="submit">
-          Anmelden
-        </button>
-
-        <button class="text-button password-reset-button" id="passwordResetButton" type="button">
-          Passwort vergessen?
-        </button>
-      </form>
-
-      <p class="login-footer">
-        Der Zugriff ist ausschließlich für freigeschaltete Mitarbeiter vorgesehen.
-      </p>
-    </div>
-  </section>
-
-  <div class="app-shell auth-hidden" id="appShell">
-    <aside class="sidebar" id="sidebar">
-      <div class="brand">
-
-        <div class="logo-panel">
-          <img src="logo2.png" alt="TP Holding Unternehmensgruppe" class="sidebar-logo">
-        </div>
-        <div class="brand-text">
-          <strong>Vertriebscockpit</strong>
-          <span>Außendienst & Innendienst</span>
-        </div>
-
+        <p class="login-footer">
+          Der Zugriff ist ausschließlich für freigeschaltete Mitarbeiter
+          vorgesehen.
+        </p>
       </div>
-      <nav class="main-nav" aria-label="Hauptnavigation">
-        <button class="nav-button active" data-view="dashboard"><span>▦</span> Dashboard</button>
-        <button class="nav-button" data-view="customers"><span>◉</span> Kunden</button>
-        <button class="nav-button" data-view="appointments"><span>□</span> Termine</button>
-        <button class="nav-button" data-view="activities"><span>↻</span> Aktivitäten</button>
-        <button class="nav-button" data-view="followups"><span>✓</span> Wiedervorlagen</button>
-        <button class="nav-button" data-view="history"><span>≡</span> Historie</button>
-        <button class="nav-button" data-view="import"><span>⇧</span> CSV-Import</button>
-        <button class="nav-button hidden" id="adminNavButton" data-view="admin"><span>⚙</span> Administration</button>
-      </nav>
-      <div class="sidebar-card">
-        <small>Hier befinden Sie sich</small>
-        <strong id="locationLabel">Dashboard</strong>
-        <span id="locationHint">Vertriebsaktivitäten im Überblick</span>
-      </div>
-      <div class="sidebar-footer">Zentrale CRM-Datenbank · Firestore</div>
-    </aside>
+    </section>
 
-    <main class="main-content">
-      <header class="topbar">
-        <button class="icon-button menu-button" id="menuButton" aria-label="Menü öffnen">☰</button>
-        <div>
-          <h1 id="pageTitle">Dashboard</h1>
-          <p id="pageSubtitle">Aktivitäten, Termine und offene Aufgaben im Überblick</p>
-        </div>
-        <div class="topbar-actions">
-          <div class="connection-status" id="connectionStatus" data-state="online">
-            <span></span><strong>Online</strong>
+    <div class="app-shell auth-hidden" id="appShell">
+      <aside class="sidebar" id="sidebar">
+        <div class="brand">
+          <div class="logo-panel">
+            <img
+              src="logo2.png"
+              alt="TP Holding Unternehmensgruppe"
+              class="sidebar-logo"
+            />
           </div>
-          <label class="global-search"><span>⌕</span><input id="globalSearch" type="search"
-              placeholder="Kunde, Ort oder Ansprechpartner"></label>
-          <button class="primary-button" id="quickActivityButton">+ Kontakt erfassen</button>
-
-          <div class="user-menu">
-            <div class="user-avatar" id="userAvatar">PG</div>
-            <div class="user-details">
-              <strong id="currentUserName">Angemeldet</strong>
-              <span id="currentUserEmail"></span><span class="role-badge" id="currentUserRole">Benutzer</span>
-            </div>
-            <button class="icon-button logout-button" id="logoutButton" type="button"
-              title="Abmelden" aria-label="Abmelden">↪</button>
+          <div class="brand-text">
+            <strong>Vertriebscockpit</strong>
+            <span>Außendienst & Innendienst</span>
           </div>
         </div>
-      </header>
+        <nav class="main-nav" aria-label="Hauptnavigation">
+          <button class="nav-button active" data-view="dashboard">
+            <span>▦</span> Dashboard
+          </button>
+          <button class="nav-button" data-view="customers">
+            <span>◉</span> Kunden
+          </button>
+          <button class="nav-button" data-view="appointments">
+            <span>□</span> Termine
+          </button>
+          <button class="nav-button" data-view="activities">
+            <span>↻</span> Aktivitäten
+          </button>
+          <button class="nav-button" data-view="followups">
+            <span>✓</span> Wiedervorlagen
+          </button>
+          <button class="nav-button" data-view="history">
+            <span>≡</span> Historie
+          </button>
+          <button class="nav-button" data-view="import">
+            <span>⇧</span> CSV-Import
+          </button>
+          <button
+            class="nav-button hidden"
+            id="adminNavButton"
+            data-view="admin"
+          >
+            <span>⚙</span> Administration
+          </button>
+        </nav>
+        <div class="sidebar-card">
+          <small>Hier befinden Sie sich</small>
+          <strong id="locationLabel">Dashboard</strong>
+          <span id="locationHint">Vertriebsaktivitäten im Überblick</span>
+        </div>
+        <div class="sidebar-footer">Zentrale CRM-Datenbank · Firestore</div>
+      </aside>
 
-      <section class="view active" id="view-dashboard">
-        <div class="filter-row card">
-          <label>Zeitraum<select id="dashboardPeriod">
-              <option value="week">Diese Woche</option>
-              <option value="month">Dieser Monat</option>
-              <option value="all">Gesamt</option>
-            </select></label>
-          <label>Außendienst<select id="dashboardOwner">
-              <option value="all">Alle</option>
-            </select></label>
-        </div>
-        <div class="kpi-grid" id="kpiGrid"></div>
-        <div class="dashboard-grid">
-          <article class="card chart-card">
-            <div class="card-heading">
-              <div>
-                <h2>Aktivitäten je Kalenderwoche</h2>
-                <p>Kontakte des gefilterten Außendienstes</p>
-              </div>
-            </div>
-            <div class="bar-chart" id="activityChart"></div>
-          </article>
-          <article class="card">
-            <div class="card-heading">
-              <div>
-                <h2>Vertriebspipeline</h2>
-                <p>Aktueller Stand der Kunden und Leads</p>
-              </div>
-            </div>
-            <div class="pipeline-list" id="pipelineList"></div>
-          </article>
-          <article class="card">
-            <div class="card-heading">
-              <div>
-                <h2>Heute & demnächst</h2>
-                <p>Anstehende Kundentermine</p>
-              </div><button class="text-button" data-go="appointments">Alle anzeigen</button>
-            </div>
-            <div class="compact-list" id="upcomingAppointments"></div>
-          </article>
-          <article class="card">
-            <div class="card-heading">
-              <div>
-                <h2>Handlungsbedarf</h2>
-                <p>Überfällige Wiedervorlagen und lange Kontaktpausen</p>
-              </div><button class="text-button" data-go="followups">Öffnen</button>
-            </div>
-            <div class="compact-list" id="attentionList"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="view" id="view-customers">
-        <div class="toolbar card">
-          <div class="segmented" id="customerTypeFilter">
-            <button class="active" data-value="all">Alle</button><button
-              data-value="Bestandskunde">Bestandskunden</button><button
-              data-value="Interessent">Interessenten</button><button
-              data-value="Kaltakquise">Kaltakquise</button><button
-              data-value="archived">Archiviert</button>
-          </div>
-          <div class="toolbar-actions">
-            <select id="customerOwnerFilter">
-              <option value="all">Alle Außendienstmitarbeiter</option>
-            </select>
-            <button class="primary-button" id="newCustomerButton">+ Kunde</button>
-          </div>
-        </div>
-        <div class="content-split">
-          <article class="card list-panel">
-            <div class="list-toolbar"><strong id="customerCount">0 Kunden</strong><input id="customerSearch"
-                type="search" placeholder="Liste durchsuchen"></div>
-            <div class="customer-list" id="customerList"></div>
-          </article>
-          <article class="card detail-panel" id="customerDetail">
-            <div class="empty-state">
-              <div>◉</div>
-              <h2>Kunden auswählen</h2>
-              <p>Wählen Sie links einen Kunden aus, um Stammdaten, Historie und nächste Schritte zu sehen.</p>
-            </div>
-          </article>
-        </div>
-      </section>
-
-      <section class="view" id="view-appointments">
-        <div class="toolbar card">
+      <main class="main-content">
+        <header class="topbar">
+          <button
+            class="icon-button menu-button"
+            id="menuButton"
+            aria-label="Menü öffnen"
+          >
+            ☰
+          </button>
           <div>
-            <h2>Terminübersicht</h2>
-            <p>Geplante Besuche und Gespräche</p>
-          </div><button class="primary-button" id="newAppointmentButton">+ Termin</button>
-        </div>
-        <div class="appointment-layout">
-          <article class="card calendar-card">
-            <div class="calendar-header"><button class="icon-button" id="prevWeek">‹</button><strong
-                id="calendarRange"></strong><button class="icon-button" id="nextWeek">›</button></div>
-            <div class="week-grid" id="weekGrid"></div>
-          </article>
-          <article class="card">
-            <div class="card-heading">
-              <div>
-                <h2>Terminliste</h2>
-                <p>Direkt zu Google Maps oder zum Kunden</p>
+            <h1 id="pageTitle">Dashboard</h1>
+            <p id="pageSubtitle">
+              Aktivitäten, Termine und offene Aufgaben im Überblick
+            </p>
+          </div>
+          <div class="topbar-actions">
+            <div
+              class="connection-status"
+              id="connectionStatus"
+              data-state="online"
+            >
+              <span></span><strong>Online</strong>
+            </div>
+            <label class="global-search"
+              ><span>⌕</span
+              ><input
+                id="globalSearch"
+                type="search"
+                placeholder="Kunde, Ort oder Ansprechpartner"
+            /></label>
+            <button class="primary-button" id="quickActivityButton">
+              + Kontakt erfassen
+            </button>
+
+            <div class="user-menu">
+              <div class="user-avatar" id="userAvatar">PG</div>
+              <div class="user-details">
+                <strong id="currentUserName">Angemeldet</strong>
+                <span id="currentUserEmail"></span
+                ><span class="role-badge" id="currentUserRole">Benutzer</span>
               </div>
+              <button
+                class="icon-button logout-button"
+                id="logoutButton"
+                type="button"
+                title="Abmelden"
+                aria-label="Abmelden"
+              >
+                ↪
+              </button>
             </div>
-            <div class="compact-list" id="appointmentList"></div>
-          </article>
-        </div>
-      </section>
-
-      <section class="view" id="view-activities">
-        <div class="toolbar card">
-          <div>
-            <h2>Kontakt- und Besuchshistorie</h2>
-            <p>Jeder Anruf, jede E-Mail und jeder Besuch an einem Ort</p>
-          </div><button class="primary-button" id="newActivityButton">+ Aktivität</button>
-        </div>
-        <article class="card table-card">
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Datum</th>
-                  <th>Kunde</th>
-                  <th>Außendienst</th>
-                  <th>Kontaktart</th>
-                  <th>Ergebnis</th>
-                  <th>Nächster Schritt</th>
-                  <th>Notiz</th>
-                  <th>Aktionen</th>
-                </tr>
-              </thead>
-              <tbody id="activityTableBody"></tbody>
-            </table>
           </div>
-        </article>
-      </section>
+        </header>
 
-      <section class="view" id="view-followups">
-        <div class="toolbar card">
-          <div>
-            <h2>Wiedervorlagen</h2>
-            <p>Offene Aufgaben nach Fälligkeit und Priorität</p>
-          </div><button class="primary-button" id="newFollowupButton">+ Wiedervorlage</button>
-        </div>
-        <div class="followup-board" id="followupBoard"></div>
-      </section>
-
-
-      <section class="view" id="view-history">
-        <div class="toolbar card history-toolbar">
-          <div>
-            <h2>Globale CRM-Historie</h2>
-            <p>Änderungen aller Kunden, Aktivitäten, Termine und Wiedervorlagen</p>
+        <section class="view active" id="view-dashboard">
+          <div class="filter-row card">
+            <label
+              >Zeitraum<select id="dashboardPeriod">
+                <option value="week">Diese Woche</option>
+                <option value="month">Dieser Monat</option>
+                <option value="all">Gesamt</option>
+              </select></label
+            >
+            <label
+              >Außendienst<select id="dashboardOwner">
+                <option value="all">Alle</option>
+              </select></label
+            >
           </div>
-          <button class="secondary-button" id="refreshHistoryButton" type="button">Aktualisieren</button>
-        </div>
-
-        <article class="card history-filter-card">
-          <div class="history-filters">
-            <label>Von<input type="date" id="historyDateFrom"></label>
-            <label>Bis<input type="date" id="historyDateTo"></label>
-            <label>Benutzer<select id="historyUserFilter"><option value="all">Alle Benutzer</option></select></label>
-            <label>Kunde<select id="historyCustomerFilter"><option value="all">Alle Kunden</option></select></label>
-            <label>Datensatzart<select id="historyEntityFilter">
-              <option value="all">Alle Arten</option>
-              <option value="customer">Kunde</option>
-              <option value="activity">Aktivität</option>
-              <option value="appointment">Termin</option>
-              <option value="followup">Wiedervorlage</option>
-              <option value="employee">Außendienstmitarbeiter</option>
-            </select></label>
-            <label>Aktion<select id="historyActionFilter">
-              <option value="all">Alle Aktionen</option>
-              <option value="created">Angelegt</option>
-              <option value="updated">Bearbeitet</option>
-              <option value="deleted">Gelöscht</option>
-              <option value="archived">Archiviert</option>
-              <option value="restored">Wiederhergestellt</option>
-              <option value="completed">Erledigt</option>
-              <option value="reopened">Wieder geöffnet</option>
-              <option value="imported">Importiert</option>
-              <option value="system-updated">Automatisch aktualisiert</option>
-              <option value="deactivated">Deaktiviert</option>
-              <option value="permanently-deleted">Endgültig gelöscht</option>
-            </select></label>
-            <label class="history-search">Suche<input type="search" id="historySearch" placeholder="Kunde, Benutzer oder Inhalt"></label>
-          </div>
-          <div class="history-filter-footer">
-            <strong id="historyCount">0 Einträge</strong>
-            <button class="text-button" id="resetHistoryFilters" type="button">Filter zurücksetzen</button>
-          </div>
-        </article>
-
-        <div class="global-history-list" id="globalHistoryList">
-          <article class="card empty-state"><p>Historie wird geladen …</p></article>
-        </div>
-      </section>
-
-
-      <section class="view" id="view-admin">
-        <div class="toolbar card">
-          <div>
-            <h2>Administration</h2>
-            <p>Außendienstmitarbeiter und administrative Funktionen verwalten</p>
-          </div>
-          <button class="primary-button" id="newEmployeeButton" type="button">+ Außendienstmitarbeiter</button>
-        </div>
-
-        <div class="admin-grid">
-          <article class="card">
-            <div class="card-heading">
-              <div>
-                <h2>Außendienstmitarbeiter</h2>
-                <p>Diese Namen stehen anschließend in Kunden, Aktivitäten, Terminen und Wiedervorlagen zur Auswahl.</p>
+          <div class="kpi-grid" id="kpiGrid"></div>
+          <div class="dashboard-grid">
+            <article class="card chart-card">
+              <div class="card-heading">
+                <div>
+                  <h2>Aktivitäten je Kalenderwoche</h2>
+                  <p>Kontakte des gefilterten Außendienstes</p>
+                </div>
               </div>
-              <strong id="employeeCount">0 Außendienstmitarbeiter</strong>
-            </div>
-            <div class="admin-employee-list" id="employeeAdminList"></div>
-          </article>
-
-          <article class="card admin-info-card">
-            <h2>Login-Benutzer und Rollen</h2>
-            <p>Login-Konten werden weiterhin in Firebase Authentication angelegt. Die Rolle wird im Firestore-Dokument <code>users/{uid}</code> gepflegt.</p>
-            <div class="admin-role-example">
-              <strong>Administrator</strong>
-              <code>role: "admin"</code>
-              <code>active: true</code>
-            </div>
-            <div class="admin-role-example">
-              <strong>Normaler Benutzer</strong>
-              <code>role: "user"</code>
-              <code>active: true</code>
-            </div>
-            <p class="admin-warning">Nur Administratoren können archivierte Kunden endgültig löschen und Außendienstmitarbeiter verwalten.</p>
-          </article>
-        </div>
-      </section>
-
-      <section class="view" id="view-import">
-        <div class="import-grid">
-          <article class="card import-card">
-            <div class="upload-icon">⇧</div>
-            <h2>Kundenlisten importieren</h2>
-            <p>CSV-Datei auswählen und einer Kundengruppe zuordnen. Neue Datensätze werden ergänzt; vorhandene Kunden werden niemals überschrieben.</p>
-            <label>Kundengruppe für neue Datensätze<select id="importType">
-                <option>Bestandskunde</option>
-                <option>Interessent</option>
-                <option>Kaltakquise</option>
-              </select></label><label class="file-drop"><input type="file" id="csvFile"
-                accept=".csv,text/csv"><strong>CSV-Datei auswählen</strong><span id="fileName">oder hier
-                ablegen</span></label><button class="primary-button" id="importButton" disabled>Vorschau
-              anzeigen</button>
-          </article>
-          <article class="card">
-            <div class="card-heading">
-              <div>
-                <h2>Importvorschau</h2>
-                <p id="importSummary">Noch keine Datei ausgewählt</p>
+              <div class="bar-chart" id="activityChart"></div>
+            </article>
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Vertriebspipeline</h2>
+                  <p>Aktueller Stand der Kunden und Leads</p>
+                </div>
               </div>
+              <div class="pipeline-list" id="pipelineList"></div>
+            </article>
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Heute & demnächst</h2>
+                  <p>Anstehende Kundentermine</p>
+                </div>
+                <button class="text-button" data-go="appointments">
+                  Alle anzeigen
+                </button>
+              </div>
+              <div class="compact-list" id="upcomingAppointments"></div>
+            </article>
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Handlungsbedarf</h2>
+                  <p>
+                    Überfällige Wiedervorlagen und lange Kontaktpausen (>180
+                    Tage)
+                  </p>
+                </div>
+                <button class="text-button" data-go="followups">Öffnen</button>
+              </div>
+              <div class="compact-list" id="attentionList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-customers">
+          <div class="toolbar card">
+            <div class="segmented" id="customerTypeFilter">
+              <button class="active" data-value="all">Alle</button
+              ><button data-value="Bestandskunde">Bestandskunden</button
+              ><button data-value="Interessent">Interessenten</button
+              ><button data-value="Kaltakquise">Kaltakquise</button
+              ><button data-value="archived">Archiviert</button>
             </div>
+            <div class="toolbar-actions">
+              <select id="customerOwnerFilter">
+                <option value="all">Alle Außendienstmitarbeiter</option>
+              </select>
+              <button class="primary-button" id="newCustomerButton">
+                + Kunde
+              </button>
+            </div>
+          </div>
+          <div class="content-split">
+            <article class="card list-panel">
+              <div class="list-toolbar">
+                <strong id="customerCount">0 Kunden</strong
+                ><input
+                  id="customerSearch"
+                  type="search"
+                  placeholder="Liste durchsuchen"
+                />
+              </div>
+              <div class="customer-list" id="customerList"></div>
+            </article>
+            <article class="card detail-panel" id="customerDetail">
+              <div class="empty-state">
+                <div>◉</div>
+                <h2>Kunden auswählen</h2>
+                <p>
+                  Wählen Sie links einen Kunden aus, um Stammdaten, Historie und
+                  nächste Schritte zu sehen.
+                </p>
+              </div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-appointments">
+          <div class="toolbar card">
+            <div>
+              <h2>Terminübersicht</h2>
+              <p>Geplante Besuche und Gespräche</p>
+            </div>
+            <button class="primary-button" id="newAppointmentButton">
+              + Termin
+            </button>
+          </div>
+          <div class="appointment-layout">
+            <article class="card calendar-card">
+              <div class="calendar-header">
+                <button class="icon-button" id="prevWeek">‹</button
+                ><strong id="calendarRange"></strong
+                ><button class="icon-button" id="nextWeek">›</button>
+              </div>
+              <div class="week-grid" id="weekGrid"></div>
+            </article>
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Terminliste</h2>
+                  <p>Direkt zu Google Maps oder zum Kunden</p>
+                </div>
+              </div>
+              <div class="compact-list" id="appointmentList"></div>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-activities">
+          <div class="toolbar card">
+            <div>
+              <h2>Kontakt- und Besuchshistorie</h2>
+              <p>Jeder Anruf, jede E-Mail und jeder Besuch an einem Ort</p>
+            </div>
+            <button class="primary-button" id="newActivityButton">
+              + Aktivität
+            </button>
+          </div>
+          <article class="card table-card">
             <div class="table-scroll">
-              <table id="importPreview">
-                <thead></thead>
-                <tbody></tbody>
+              <table>
+                <thead>
+                  <tr>
+                    <th>Datum</th>
+                    <th>Kunde</th>
+                    <th>Außendienst</th>
+                    <th>Kontaktart</th>
+                    <th>Ergebnis</th>
+                    <th>Nächster Schritt</th>
+                    <th>Notiz</th>
+                    <th>Aktionen</th>
+                  </tr>
+                </thead>
+                <tbody id="activityTableBody"></tbody>
               </table>
-            </div><p class="import-note">Nur Datensätze mit dem Prüfergebnis <strong>Neu</strong> werden übernommen. Bereits vorhandene oder mögliche Dubletten bleiben unverändert.</p><button class="primary-button hidden" id="confirmImportButton">Neue Datensätze übernehmen</button>
+            </div>
           </article>
+        </section>
+
+        <section class="view" id="view-followups">
+          <div class="toolbar card">
+            <div>
+              <h2>Wiedervorlagen</h2>
+              <p>Offene Aufgaben nach Fälligkeit und Priorität</p>
+            </div>
+            <button class="primary-button" id="newFollowupButton">
+              + Wiedervorlage
+            </button>
+          </div>
+          <div class="followup-board" id="followupBoard"></div>
+        </section>
+
+        <section class="view" id="view-history">
+          <div class="toolbar card history-toolbar">
+            <div>
+              <h2>Globale CRM-Historie</h2>
+              <p>
+                Änderungen aller Kunden, Aktivitäten, Termine und Wiedervorlagen
+              </p>
+            </div>
+            <button
+              class="secondary-button"
+              id="refreshHistoryButton"
+              type="button"
+            >
+              Aktualisieren
+            </button>
+          </div>
+
+          <article class="card history-filter-card">
+            <div class="history-filters">
+              <label>Von<input type="date" id="historyDateFrom" /></label>
+              <label>Bis<input type="date" id="historyDateTo" /></label>
+              <label
+                >Benutzer<select id="historyUserFilter">
+                  <option value="all">Alle Benutzer</option>
+                </select></label
+              >
+              <label
+                >Kunde<select id="historyCustomerFilter">
+                  <option value="all">Alle Kunden</option>
+                </select></label
+              >
+              <label
+                >Datensatzart<select id="historyEntityFilter">
+                  <option value="all">Alle Arten</option>
+                  <option value="customer">Kunde</option>
+                  <option value="activity">Aktivität</option>
+                  <option value="appointment">Termin</option>
+                  <option value="followup">Wiedervorlage</option>
+                  <option value="employee">Außendienstmitarbeiter</option>
+                </select></label
+              >
+              <label
+                >Aktion<select id="historyActionFilter">
+                  <option value="all">Alle Aktionen</option>
+                  <option value="created">Angelegt</option>
+                  <option value="updated">Bearbeitet</option>
+                  <option value="deleted">Gelöscht</option>
+                  <option value="archived">Archiviert</option>
+                  <option value="restored">Wiederhergestellt</option>
+                  <option value="completed">Erledigt</option>
+                  <option value="reopened">Wieder geöffnet</option>
+                  <option value="imported">Importiert</option>
+                  <option value="system-updated">
+                    Automatisch aktualisiert
+                  </option>
+                  <option value="deactivated">Deaktiviert</option>
+                  <option value="permanently-deleted">
+                    Endgültig gelöscht
+                  </option>
+                </select></label
+              >
+              <label class="history-search"
+                >Suche<input
+                  type="search"
+                  id="historySearch"
+                  placeholder="Kunde, Benutzer oder Inhalt"
+              /></label>
+            </div>
+            <div class="history-filter-footer">
+              <strong id="historyCount">0 Einträge</strong>
+              <button
+                class="text-button"
+                id="resetHistoryFilters"
+                type="button"
+              >
+                Filter zurücksetzen
+              </button>
+            </div>
+          </article>
+
+          <div class="global-history-list" id="globalHistoryList">
+            <article class="card empty-state">
+              <p>Historie wird geladen …</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-admin">
+          <div class="toolbar card">
+            <div>
+              <h2>Administration</h2>
+              <p>
+                Außendienstmitarbeiter und administrative Funktionen verwalten
+              </p>
+            </div>
+            <button class="primary-button" id="newEmployeeButton" type="button">
+              + Außendienstmitarbeiter
+            </button>
+          </div>
+
+          <div class="admin-grid">
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Außendienstmitarbeiter</h2>
+                  <p>
+                    Diese Namen stehen anschließend in Kunden, Aktivitäten,
+                    Terminen und Wiedervorlagen zur Auswahl.
+                  </p>
+                </div>
+                <strong id="employeeCount">0 Außendienstmitarbeiter</strong>
+              </div>
+              <div class="admin-employee-list" id="employeeAdminList"></div>
+            </article>
+
+            <article class="card admin-info-card">
+              <h2>Login-Benutzer und Rollen</h2>
+              <p>
+                Login-Konten werden weiterhin in Firebase Authentication
+                angelegt. Die Rolle wird im Firestore-Dokument
+                <code>users/{uid}</code> gepflegt.
+              </p>
+              <div class="admin-role-example">
+                <strong>Administrator</strong>
+                <code>role: "admin"</code>
+                <code>active: true</code>
+              </div>
+              <div class="admin-role-example">
+                <strong>Normaler Benutzer</strong>
+                <code>role: "user"</code>
+                <code>active: true</code>
+              </div>
+              <p class="admin-warning">
+                Nur Administratoren können archivierte Kunden endgültig löschen
+                und Außendienstmitarbeiter verwalten.
+              </p>
+            </article>
+          </div>
+        </section>
+
+        <section class="view" id="view-import">
+          <div class="import-grid">
+            <article class="card import-card">
+              <div class="upload-icon">⇧</div>
+              <h2>Kundenlisten importieren</h2>
+              <p>
+                CSV-Datei auswählen und einer Kundengruppe zuordnen. Neue
+                Datensätze werden ergänzt; vorhandene Kunden werden niemals
+                überschrieben.
+              </p>
+              <label
+                >Kundengruppe für neue Datensätze<select id="importType">
+                  <option>Bestandskunde</option>
+                  <option>Interessent</option>
+                  <option>Kaltakquise</option>
+                </select></label
+              ><label class="file-drop"
+                ><input
+                  type="file"
+                  id="csvFile"
+                  accept=".csv,text/csv"
+                /><strong>CSV-Datei auswählen</strong
+                ><span id="fileName">oder hier ablegen</span></label
+              ><button class="primary-button" id="importButton" disabled>
+                Vorschau anzeigen
+              </button>
+            </article>
+            <article class="card">
+              <div class="card-heading">
+                <div>
+                  <h2>Importvorschau</h2>
+                  <p id="importSummary">Noch keine Datei ausgewählt</p>
+                </div>
+              </div>
+              <div class="table-scroll">
+                <table id="importPreview">
+                  <thead></thead>
+                  <tbody></tbody>
+                </table>
+              </div>
+              <p class="import-note">
+                Nur Datensätze mit dem Prüfergebnis <strong>Neu</strong> werden
+                übernommen. Bereits vorhandene oder mögliche Dubletten bleiben
+                unverändert.
+              </p>
+              <button class="primary-button hidden" id="confirmImportButton">
+                Neue Datensätze übernehmen
+              </button>
+            </article>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="formDialog">
+      <form method="dialog" id="dynamicForm">
+        <div class="dialog-header">
+          <div>
+            <h2 id="dialogTitle"></h2>
+            <p id="dialogSubtitle"></p>
+          </div>
+
+          <button
+            type="submit"
+            class="icon-button"
+            value="cancel"
+            formnovalidate
+            aria-label="Schließen"
+          >
+            ×
+          </button>
         </div>
-      </section>
-    </main>
-  </div>
 
-  <dialog id="formDialog">
-    <form method="dialog" id="dynamicForm">
+        <div class="dialog-body" id="dialogFields"></div>
 
+        <div class="dialog-footer">
+          <button
+            type="submit"
+            class="secondary-button"
+            value="cancel"
+            formnovalidate
+          >
+            Abbrechen
+          </button>
+
+          <button
+            type="submit"
+            class="primary-button"
+            id="dialogSaveButton"
+            value="default"
+          >
+            Speichern
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="noteDialog" class="note-dialog">
       <div class="dialog-header">
         <div>
-          <h2 id="dialogTitle"></h2>
-          <p id="dialogSubtitle"></p>
+          <h2>Handschriftliche Notiz</h2>
+          <p>Mit Maus, Touch oder Stift schreiben</p>
         </div>
+        <button class="icon-button" id="closeNoteButton">×</button>
+      </div>
+      <div class="note-tools">
+        <button class="secondary-button" id="clearCanvasButton">Leeren</button
+        ><span>Stiftbreite</span
+        ><input type="range" id="penWidth" min="1" max="8" value="3" />
+      </div>
+      <canvas id="noteCanvas" width="900" height="450"></canvas>
+      <div class="dialog-footer">
+        <button class="secondary-button" id="cancelNoteButton">Abbrechen</button
+        ><button class="primary-button" id="saveNoteButton">
+          Notiz übernehmen
+        </button>
+      </div>
+    </dialog>
 
-        <button type="submit" class="icon-button" value="cancel" formnovalidate aria-label="Schließen">
+    <dialog id="employeeDialog">
+      <form id="employeeForm">
+        <div class="dialog-header">
+          <div>
+            <h2 id="employeeDialogTitle">Außendienstmitarbeiter anlegen</h2>
+            <p>Name und optionale Kontaktdaten</p>
+          </div>
+          <button
+            class="icon-button"
+            id="closeEmployeeDialog"
+            type="button"
+            aria-label="Schließen"
+          >
+            ×
+          </button>
+        </div>
+        <div class="dialog-body dialog-grid">
+          <label
+            >Name
+            <input id="employeeName" type="text" required autocomplete="off" />
+          </label>
+          <label
+            >E-Mail-Adresse
+            <input id="employeeEmail" type="email" autocomplete="off" />
+          </label>
+          <label class="checkbox-row">
+            <input id="employeeActive" type="checkbox" checked />
+            <span>Aktiv und in Auswahllisten anzeigen</span>
+          </label>
+        </div>
+        <div class="dialog-footer">
+          <button
+            class="secondary-button"
+            id="cancelEmployeeButton"
+            type="button"
+          >
+            Abbrechen
+          </button>
+          <button class="primary-button" id="saveEmployeeButton" type="submit">
+            Speichern
+          </button>
+        </div>
+      </form>
+    </dialog>
+
+    <dialog id="duplicateDialog" class="duplicate-dialog">
+      <div class="dialog-header">
+        <div>
+          <h2>Mögliche Dublette gefunden</h2>
+          <p>Bitte prüfen Sie den bereits vorhandenen Kundendatensatz.</p>
+        </div>
+        <button
+          class="icon-button"
+          id="closeDuplicateDialog"
+          type="button"
+          aria-label="Schließen"
+        >
           ×
         </button>
       </div>
-
-      <div class="dialog-body" id="dialogFields"></div>
-
-      <div class="dialog-footer">
-        <button type="submit" class="secondary-button" value="cancel" formnovalidate>
+      <div class="dialog-body">
+        <div id="duplicateDetails"></div>
+      </div>
+      <div class="dialog-footer duplicate-actions">
+        <button
+          class="secondary-button"
+          id="cancelDuplicateButton"
+          type="button"
+        >
           Abbrechen
         </button>
-
-        <button type="submit" class="primary-button" id="dialogSaveButton" value="default">
-          Speichern
+        <button class="secondary-button" id="openDuplicateButton" type="button">
+          Vorhandenen Kunden öffnen
+        </button>
+        <button
+          class="primary-button"
+          id="saveDuplicateAnywayButton"
+          type="button"
+        >
+          Trotzdem speichern
         </button>
       </div>
+    </dialog>
 
-    </form>
-  </dialog>
-
-  <dialog id="noteDialog" class="note-dialog">
-    <div class="dialog-header">
-      <div>
-        <h2>Handschriftliche Notiz</h2>
-        <p>Mit Maus, Touch oder Stift schreiben</p>
-      </div><button class="icon-button" id="closeNoteButton">×</button>
-    </div>
-    <div class="note-tools"><button class="secondary-button"
-        id="clearCanvasButton">Leeren</button><span>Stiftbreite</span><input type="range" id="penWidth" min="1" max="8"
-        value="3"></div>
-    <canvas id="noteCanvas" width="900" height="450"></canvas>
-    <div class="dialog-footer"><button class="secondary-button" id="cancelNoteButton">Abbrechen</button><button
-        class="primary-button" id="saveNoteButton">Notiz übernehmen</button></div>
-  </dialog>
-
-
-
-  <dialog id="employeeDialog">
-    <form id="employeeForm">
-      <div class="dialog-header">
-        <div>
-          <h2 id="employeeDialogTitle">Außendienstmitarbeiter anlegen</h2>
-          <p>Name und optionale Kontaktdaten</p>
-        </div>
-        <button class="icon-button" id="closeEmployeeDialog" type="button" aria-label="Schließen">×</button>
+    <div
+      class="loading-overlay auth-hidden"
+      id="loadingOverlay"
+      aria-live="polite"
+    >
+      <div class="loading-card">
+        <div class="loading-spinner"></div>
+        <strong>Zentrale CRM-Daten werden geladen …</strong>
+        <span>Bitte einen Moment warten.</span>
       </div>
-      <div class="dialog-body dialog-grid">
-        <label>Name
-          <input id="employeeName" type="text" required autocomplete="off">
-        </label>
-        <label>E-Mail-Adresse
-          <input id="employeeEmail" type="email" autocomplete="off">
-        </label>
-        <label class="checkbox-row">
-          <input id="employeeActive" type="checkbox" checked>
-          <span>Aktiv und in Auswahllisten anzeigen</span>
-        </label>
-      </div>
-      <div class="dialog-footer">
-        <button class="secondary-button" id="cancelEmployeeButton" type="button">Abbrechen</button>
-        <button class="primary-button" id="saveEmployeeButton" type="submit">Speichern</button>
-      </div>
-    </form>
-  </dialog>
-
-  <dialog id="duplicateDialog" class="duplicate-dialog">
-    <div class="dialog-header">
-      <div>
-        <h2>Mögliche Dublette gefunden</h2>
-        <p>Bitte prüfen Sie den bereits vorhandenen Kundendatensatz.</p>
-      </div>
-      <button class="icon-button" id="closeDuplicateDialog" type="button" aria-label="Schließen">×</button>
     </div>
-    <div class="dialog-body">
-      <div id="duplicateDetails"></div>
-    </div>
-    <div class="dialog-footer duplicate-actions">
-      <button class="secondary-button" id="cancelDuplicateButton" type="button">Abbrechen</button>
-      <button class="secondary-button" id="openDuplicateButton" type="button">Vorhandenen Kunden öffnen</button>
-      <button class="primary-button" id="saveDuplicateAnywayButton" type="button">Trotzdem speichern</button>
-    </div>
-  </dialog>
 
-  <div class="loading-overlay auth-hidden" id="loadingOverlay" aria-live="polite">
-    <div class="loading-card">
-      <div class="loading-spinner"></div>
-      <strong>Zentrale CRM-Daten werden geladen …</strong>
-      <span>Bitte einen Moment warten.</span>
-    </div>
-  </div>
+    <div class="toast" id="toast"></div>
+    <script src="js/config.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/navigation.js"></script>
+    <script src="js/dashboard.js"></script>
+    <script src="js/customers.js"></script>
+    <script src="js/appointments.js"></script>
+    <script src="js/activities.js"></script>
+    <script src="js/followups.js"></script>
+    <script src="js/duplicates.js"></script>
+    <script src="js/history.js"></script>
+    <script src="js/forms.js"></script>
+    <script src="js/admin.js"></script>
+    <script src="js/maps.js"></script>
+    <script src="js/import.js"></script>
+    <script src="js/canvas.js"></script>
+    <script src="js/events.js"></script>
+    <script src="js/app.js"></script>
 
-  <div class="toast" id="toast"></div>
-  <script src="js/config.js"></script>
-  <script src="js/state.js"></script>
-  <script src="js/navigation.js"></script>
-  <script src="js/dashboard.js"></script>
-  <script src="js/customers.js"></script>
-  <script src="js/appointments.js"></script>
-  <script src="js/activities.js"></script>
-  <script src="js/followups.js"></script>
-  <script src="js/duplicates.js"></script>
-  <script src="js/history.js"></script>
-  <script src="js/forms.js"></script>
-  <script src="js/admin.js"></script>
-  <script src="js/maps.js"></script>
-  <script src="js/import.js"></script>
-  <script src="js/canvas.js"></script>
-  <script src="js/events.js"></script>
-  <script src="js/app.js"></script>
-
-  <script type="module" src="js/auth.js"></script>
-</body>
-
+    <script type="module" src="js/auth.js"></script>
+  </body>
 </html>
