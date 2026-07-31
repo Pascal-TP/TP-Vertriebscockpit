@@ -61,6 +61,10 @@ function appointmentCalendarCard(appointment) {
       </strong>
 
       <span>${appointment.subject}</span>
+      <small class="record-audit">
+        Zuletzt: ${formatDateTime(appointment.updatedAt)}
+        · ${appointment.updatedByEmail || "–"}
+      </small>
 
       <div class="appointment-actions">
         <button
@@ -107,7 +111,7 @@ function openAppointmentEditForm(appointmentId) {
   );
 }
 
-function deleteAppointment(appointmentId) {
+async function deleteAppointment(appointmentId) {
   const appointment = appointmentById(appointmentId);
 
   if (!appointment) {
@@ -127,14 +131,17 @@ function deleteAppointment(appointmentId) {
     return;
   }
 
-  data.appointments = data.appointments.filter(
-    (item) => item.id !== appointmentId,
-  );
+  try {
+    await window.crmFirestore.deleteAppointmentRecord(appointment, {
+      appointments: data.appointments,
+      customers: data.customers,
+    });
 
-  syncCustomerNextAppointment(appointment.customerId);
-  saveData();
-
-  toast("Der Termin wurde gelöscht.");
+    toast("Der Termin wurde gelöscht.");
+  } catch (error) {
+    console.error("Appointment deletion failed:", error);
+    toast("Der Termin konnte nicht gelöscht werden.");
+  }
 }
 
 function appointmentById(appointmentId) {

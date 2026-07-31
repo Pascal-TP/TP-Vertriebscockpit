@@ -2,6 +2,7 @@ import { crmAuth, crmDb } from "./firebase.js";
 
 import {
   collection,
+  deleteField,
   doc,
   getDocs,
   onSnapshot,
@@ -11,10 +12,16 @@ import {
   where,
 } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
 
-const customerCollection = collection(crmDb, "customers");
-const historyCollection = collection(crmDb, "history");
+const collections = {
+  customers: collection(crmDb, "customers"),
+  activities: collection(crmDb, "activities"),
+  appointments: collection(crmDb, "appointments"),
+  followups: collection(crmDb, "followups"),
+};
 
-let unsubscribeCustomers = null;
+const historyCollection = collection(crmDb, "history");
+const unsubscribers = {};
+let syncPromise = null;
 let migrationHandled = false;
 
 const auditIgnoredFields = new Set([
@@ -56,7 +63,7 @@ function timestampToIso(value) {
   return String(value);
 }
 
-function normalizeCustomer(snapshot) {
+function normalizeSnapshot(snapshot) {
   const value = snapshot.data();
 
   return {
@@ -82,11 +89,7 @@ function comparable(value) {
     return [...value].sort();
   }
 
-  if (value === undefined) {
-    return "";
-  }
-
-  return value;
+  return value === undefined ? "" : value;
 }
 
 function buildChanges(before = {}, after = {}) {
@@ -112,8 +115,29 @@ function buildChanges(before = {}, after = {}) {
   return changes;
 }
 
+function auditData(action) {
+  const currentActor = actor();
+  const values = {
+    updatedAt: serverTimestamp(),
+    updatedByUid: currentActor.uid,
+    updatedByEmail: currentActor.email,
+  };
+
+  if (["created", "imported", "migrated"].includes(action)) {
+    Object.assign(values, {
+      createdAt: serverTimestamp(),
+      createdByUid: currentActor.uid,
+      createdByEmail: currentActor.email,
+    });
+  }
+
+  return values;
+}
+
 function historyPayload({
-  customerId,
+  entityType,
+  entityId,
+  customerId = "",
   action,
   summary,
   changes = {},
@@ -122,8 +146,9 @@ function historyPayload({
   const currentActor = actor();
 
   return {
-    entityType: "customer",
-    entityId: customerId,
+    entityType,
+    entityId,
+    customerId,
     action,
     summary,
     changes,
@@ -135,128 +160,59 @@ function historyPayload({
   };
 }
 
-async function writeCustomerAndHistory({
-  customerId,
-  customerData,
+function addHistory(batch, payload) {
+  batch.set(doc(historyCollection), historyPayload(payload));
+}
+
+function addEntityWrite(batch, {
+  collectionName,
+  entityId,
+  data,
   action,
+  customerId,
   summary,
   changes = {},
   snapshot = {},
   merge = true,
 }) {
-  const currentActor = actor();
-  const batch = writeBatch(crmDb);
-  const customerRef = doc(crmDb, "customers", customerId);
-  const historyRef = doc(historyCollection);
-
-  const auditData = {
-    updatedAt: serverTimestamp(),
-    updatedByUid: currentActor.uid,
-    updatedByEmail: currentActor.email,
-  };
-
-  if (action === "created" || action === "imported" || action === "migrated") {
-    Object.assign(auditData, {
-      createdAt: serverTimestamp(),
-      createdByUid: currentActor.uid,
-      createdByEmail: currentActor.email,
-    });
-  }
-
   batch.set(
-    customerRef,
+    doc(crmDb, collectionName, entityId),
     {
-      ...customerData,
-      ...auditData,
+      ...data,
+      ...auditData(action),
     },
     { merge },
   );
 
-  batch.set(
-    historyRef,
-    historyPayload({
-      customerId,
-      action,
-      summary,
-      changes,
-      snapshot,
-    }),
-  );
-
-  await batch.commit();
-}
-
-async function createCustomer(customer) {
-  await writeCustomerAndHistory({
-    customerId: customer.id,
-    customerData: customer,
-    action: "created",
-    summary: `Kunde „${customer.name || customer.id}“ angelegt`,
-    snapshot: customer,
-    merge: false,
-  });
-}
-
-async function updateCustomer(before, after) {
-  const changes = buildChanges(before, after);
-
-  if (!Object.keys(changes).length) {
-    return false;
-  }
-
-  await writeCustomerAndHistory({
-    customerId: after.id,
-    customerData: after,
-    action: "updated",
-    summary: `Kunde „${after.name || after.id}“ bearbeitet`,
+  addHistory(batch, {
+    entityType: collectionName.slice(0, -1),
+    entityId,
+    customerId,
+    action,
+    summary,
     changes,
-    snapshot: after,
-  });
-
-  return true;
-}
-
-async function archiveCustomerRecord(customer) {
-  const after = {
-    ...customer,
-    archived: true,
-    archivedAt: new Date().toISOString(),
-  };
-
-  await writeCustomerAndHistory({
-    customerId: customer.id,
-    customerData: {
-      archived: true,
-      archivedAt: after.archivedAt,
-    },
-    action: "archived",
-    summary: `Kunde „${customer.name || customer.id}“ archiviert`,
-    changes: buildChanges(customer, after),
-    snapshot: after,
+    snapshot,
   });
 }
 
-async function restoreCustomerRecord(customer) {
-  const after = {
-    ...customer,
-    archived: false,
-    archivedAt: "",
-  };
+function addEntityDelete(batch, {
+  collectionName,
+  entity,
+  summary,
+}) {
+  batch.delete(doc(crmDb, collectionName, entity.id));
 
-  await writeCustomerAndHistory({
-    customerId: customer.id,
-    customerData: {
-      archived: false,
-      archivedAt: "",
-    },
-    action: "restored",
-    summary: `Kunde „${customer.name || customer.id}“ wiederhergestellt`,
-    changes: buildChanges(customer, after),
-    snapshot: after,
+  addHistory(batch, {
+    entityType: collectionName.slice(0, -1),
+    entityId: entity.id,
+    customerId: entity.customerId || "",
+    action: "deleted",
+    summary,
+    snapshot: entity,
   });
 }
 
-async function updateCustomerSystemFields(customer, updates, summary) {
+function addCustomerSystemUpdate(batch, customer, updates, summary) {
   if (!customer) {
     return;
   }
@@ -268,9 +224,19 @@ async function updateCustomerSystemFields(customer, updates, summary) {
     return;
   }
 
-  await writeCustomerAndHistory({
+  batch.set(
+    doc(crmDb, "customers", customer.id),
+    {
+      ...updates,
+      ...auditData("system-updated"),
+    },
+    { merge: true },
+  );
+
+  addHistory(batch, {
+    entityType: "customer",
+    entityId: customer.id,
     customerId: customer.id,
-    customerData: updates,
     action: "system-updated",
     summary,
     changes,
@@ -278,47 +244,452 @@ async function updateCustomerSystemFields(customer, updates, summary) {
   });
 }
 
+function latestActivityDate(records, customerId) {
+  return records
+    .filter((item) => item.customerId === customerId)
+    .map((item) => item.date)
+    .filter(Boolean)
+    .sort()
+    .at(-1) || "";
+}
+
+function nextAppointmentDate(records, customerId) {
+  const today = new Date().toISOString().slice(0, 10);
+
+  return records
+    .filter(
+      (item) =>
+        item.customerId === customerId &&
+        item.date &&
+        item.date >= today,
+    )
+    .sort((a, b) =>
+      `${a.date}${a.time || ""}`.localeCompare(`${b.date}${b.time || ""}`),
+    )[0]?.date || "";
+}
+
+function pipelineFromActivityResult(result, currentPipeline) {
+  const mapping = {
+    "Termin vereinbart": "04 Termin vereinbart",
+    "Bedarf erkannt": "05 Bedarf qualifiziert",
+    "Angebot erstellt": "06 Angebot",
+    "Auftrag erhalten": "08 Gewonnen",
+    Verloren: "09 Verloren",
+  };
+
+  return mapping[result] || currentPipeline || "";
+}
+
+async function createCustomer(customer) {
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "customers",
+    entityId: customer.id,
+    data: customer,
+    action: "created",
+    customerId: customer.id,
+    summary: `Kunde „${customer.name || customer.id}“ angelegt`,
+    snapshot: customer,
+    merge: false,
+  });
+
+  await batch.commit();
+}
+
+async function updateCustomer(before, after) {
+  const changes = buildChanges(before, after);
+
+  if (!Object.keys(changes).length) {
+    return false;
+  }
+
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "customers",
+    entityId: after.id,
+    data: after,
+    action: "updated",
+    customerId: after.id,
+    summary: `Kunde „${after.name || after.id}“ bearbeitet`,
+    changes,
+    snapshot: after,
+  });
+
+  await batch.commit();
+  return true;
+}
+
+async function archiveCustomerRecord(customer) {
+  const after = {
+    ...customer,
+    archived: true,
+    archivedAt: new Date().toISOString(),
+  };
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "customers",
+    entityId: customer.id,
+    data: {
+      archived: true,
+      archivedAt: after.archivedAt,
+    },
+    action: "archived",
+    customerId: customer.id,
+    summary: `Kunde „${customer.name || customer.id}“ archiviert`,
+    changes: buildChanges(customer, after),
+    snapshot: after,
+  });
+
+  await batch.commit();
+}
+
+async function restoreCustomerRecord(customer) {
+  const after = {
+    ...customer,
+    archived: false,
+    archivedAt: "",
+  };
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "customers",
+    entityId: customer.id,
+    data: {
+      archived: false,
+      archivedAt: "",
+    },
+    action: "restored",
+    customerId: customer.id,
+    summary: `Kunde „${customer.name || customer.id}“ wiederhergestellt`,
+    changes: buildChanges(customer, after),
+    snapshot: after,
+  });
+
+  await batch.commit();
+}
+
+async function createActivity(activity, context) {
+  const batch = writeBatch(crmDb);
+  const customer = context.customer;
+  const futureActivities = [...context.activities, activity];
+
+  addEntityWrite(batch, {
+    collectionName: "activities",
+    entityId: activity.id,
+    data: activity,
+    action: "created",
+    customerId: activity.customerId,
+    summary: `Aktivität „${activity.type || activity.id}“ angelegt`,
+    snapshot: activity,
+    merge: false,
+  });
+
+  addCustomerSystemUpdate(
+    batch,
+    customer,
+    {
+      lastContact: latestActivityDate(futureActivities, activity.customerId),
+      pipeline: pipelineFromActivityResult(activity.result, customer?.pipeline),
+    },
+    "Kundendaten aus einer neuen Aktivität aktualisiert",
+  );
+
+  if (context.followup) {
+    addEntityWrite(batch, {
+      collectionName: "followups",
+      entityId: context.followup.id,
+      data: context.followup,
+      action: "created",
+      customerId: context.followup.customerId,
+      summary: `Wiedervorlage „${context.followup.task || context.followup.id}“ aus einer Aktivität angelegt`,
+      snapshot: context.followup,
+      merge: false,
+    });
+  }
+
+  await batch.commit();
+}
+
+async function updateActivity(before, after, context) {
+  const changes = buildChanges(before, after);
+
+  if (!Object.keys(changes).length) {
+    return false;
+  }
+
+  const batch = writeBatch(crmDb);
+  const futureActivities = context.activities.map((item) =>
+    item.id === after.id ? after : item,
+  );
+
+  addEntityWrite(batch, {
+    collectionName: "activities",
+    entityId: after.id,
+    data: after,
+    action: "updated",
+    customerId: after.customerId,
+    summary: `Aktivität „${after.type || after.id}“ bearbeitet`,
+    changes,
+    snapshot: after,
+  });
+
+  const affectedCustomerIds = [...new Set([before.customerId, after.customerId])];
+
+  affectedCustomerIds.forEach((customerId) => {
+    const customer = context.customers.find((item) => item.id === customerId);
+    const updates = {
+      lastContact: latestActivityDate(futureActivities, customerId),
+    };
+
+    if (customerId === after.customerId) {
+      updates.pipeline = pipelineFromActivityResult(
+        after.result,
+        customer?.pipeline,
+      );
+    }
+
+    addCustomerSystemUpdate(
+      batch,
+      customer,
+      updates,
+      "Kundendaten aus einer bearbeiteten Aktivität aktualisiert",
+    );
+  });
+
+  await batch.commit();
+  return true;
+}
+
+async function deleteActivityRecord(activity, context) {
+  const batch = writeBatch(crmDb);
+  const futureActivities = context.activities.filter(
+    (item) => item.id !== activity.id,
+  );
+  const customer = context.customers.find(
+    (item) => item.id === activity.customerId,
+  );
+
+  addEntityDelete(batch, {
+    collectionName: "activities",
+    entity: activity,
+    summary: `Aktivität „${activity.type || activity.id}“ gelöscht`,
+  });
+
+  addCustomerSystemUpdate(
+    batch,
+    customer,
+    {
+      lastContact: latestActivityDate(futureActivities, activity.customerId),
+    },
+    "Letzten Kundenkontakt nach gelöschter Aktivität aktualisiert",
+  );
+
+  await batch.commit();
+}
+
+async function createAppointment(appointment, context) {
+  const batch = writeBatch(crmDb);
+  const futureAppointments = [...context.appointments, appointment];
+  const customer = context.customers.find(
+    (item) => item.id === appointment.customerId,
+  );
+
+  addEntityWrite(batch, {
+    collectionName: "appointments",
+    entityId: appointment.id,
+    data: appointment,
+    action: "created",
+    customerId: appointment.customerId,
+    summary: `Termin „${appointment.subject || appointment.id}“ angelegt`,
+    snapshot: appointment,
+    merge: false,
+  });
+
+  addCustomerSystemUpdate(
+    batch,
+    customer,
+    {
+      nextAppointment: nextAppointmentDate(
+        futureAppointments,
+        appointment.customerId,
+      ),
+    },
+    "Nächsten Kundentermin automatisch aktualisiert",
+  );
+
+  await batch.commit();
+}
+
+async function updateAppointment(before, after, context) {
+  const changes = buildChanges(before, after);
+
+  if (!Object.keys(changes).length) {
+    return false;
+  }
+
+  const batch = writeBatch(crmDb);
+  const futureAppointments = context.appointments.map((item) =>
+    item.id === after.id ? after : item,
+  );
+
+  addEntityWrite(batch, {
+    collectionName: "appointments",
+    entityId: after.id,
+    data: after,
+    action: "updated",
+    customerId: after.customerId,
+    summary: `Termin „${after.subject || after.id}“ bearbeitet`,
+    changes,
+    snapshot: after,
+  });
+
+  [...new Set([before.customerId, after.customerId])].forEach((customerId) => {
+    const customer = context.customers.find((item) => item.id === customerId);
+
+    addCustomerSystemUpdate(
+      batch,
+      customer,
+      {
+        nextAppointment: nextAppointmentDate(futureAppointments, customerId),
+      },
+      "Nächsten Kundentermin automatisch aktualisiert",
+    );
+  });
+
+  await batch.commit();
+  return true;
+}
+
+async function deleteAppointmentRecord(appointment, context) {
+  const batch = writeBatch(crmDb);
+  const futureAppointments = context.appointments.filter(
+    (item) => item.id !== appointment.id,
+  );
+  const customer = context.customers.find(
+    (item) => item.id === appointment.customerId,
+  );
+
+  addEntityDelete(batch, {
+    collectionName: "appointments",
+    entity: appointment,
+    summary: `Termin „${appointment.subject || appointment.id}“ gelöscht`,
+  });
+
+  addCustomerSystemUpdate(
+    batch,
+    customer,
+    {
+      nextAppointment: nextAppointmentDate(
+        futureAppointments,
+        appointment.customerId,
+      ),
+    },
+    "Nächsten Kundentermin nach gelöschtem Termin aktualisiert",
+  );
+
+  await batch.commit();
+}
+
+async function createFollowup(followup) {
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "followups",
+    entityId: followup.id,
+    data: followup,
+    action: "created",
+    customerId: followup.customerId,
+    summary: `Wiedervorlage „${followup.task || followup.id}“ angelegt`,
+    snapshot: followup,
+    merge: false,
+  });
+
+  await batch.commit();
+}
+
+async function updateFollowup(before, after, action = "updated") {
+  const changes = buildChanges(before, after);
+
+  if (!Object.keys(changes).length) {
+    return false;
+  }
+
+  const labels = {
+    updated: "bearbeitet",
+    completed: "erledigt",
+    reopened: "wieder geöffnet",
+  };
+
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "followups",
+    entityId: after.id,
+    data: after,
+    action,
+    customerId: after.customerId,
+    summary: `Wiedervorlage „${after.task || after.id}“ ${labels[action] || "geändert"}`,
+    changes,
+    snapshot: after,
+  });
+
+  await batch.commit();
+  return true;
+}
+
+async function deleteFollowupRecord(followup) {
+  const batch = writeBatch(crmDb);
+
+  addEntityDelete(batch, {
+    collectionName: "followups",
+    entity: followup,
+    summary: `Wiedervorlage „${followup.task || followup.id}“ gelöscht`,
+  });
+
+  await batch.commit();
+}
+
 async function importCustomers(customers, action = "imported") {
+  await importRecords("customers", customers, action);
+}
+
+async function importRecords(collectionName, records, action = "migrated") {
   const chunks = [];
 
-  for (let index = 0; index < customers.length; index += 200) {
-    chunks.push(customers.slice(index, index + 200));
+  for (let index = 0; index < records.length; index += 200) {
+    chunks.push(records.slice(index, index + 200));
   }
 
   for (const chunk of chunks) {
-    const currentActor = actor();
     const batch = writeBatch(crmDb);
 
-    chunk.forEach((customer) => {
-      const customerRef = doc(crmDb, "customers", customer.id);
-      const historyRef = doc(historyCollection);
+    chunk.forEach((record) => {
+      const entityType = collectionName.slice(0, -1);
+      const customerId =
+        collectionName === "customers" ? record.id : record.customerId || "";
+      const title =
+        record.name ||
+        record.type ||
+        record.subject ||
+        record.task ||
+        record.id;
 
-      batch.set(
-        customerRef,
-        {
-          ...customer,
-          createdAt: serverTimestamp(),
-          createdByUid: currentActor.uid,
-          createdByEmail: currentActor.email,
-          updatedAt: serverTimestamp(),
-          updatedByUid: currentActor.uid,
-          updatedByEmail: currentActor.email,
-        },
-        { merge: false },
-      );
-
-      batch.set(
-        historyRef,
-        historyPayload({
-          customerId: customer.id,
-          action,
-          summary:
-            action === "migrated"
-              ? `Kunde „${customer.name || customer.id}“ aus dem lokalen Bestand übernommen`
-              : `Kunde „${customer.name || customer.id}“ per CSV importiert`,
-          snapshot: customer,
-        }),
-      );
+      addEntityWrite(batch, {
+        collectionName,
+        entityId: record.id,
+        data: record,
+        action,
+        customerId,
+        summary:
+          action === "imported"
+            ? `${entityType} „${title}“ importiert`
+            : `${entityType} „${title}“ aus dem lokalen Bestand übernommen`,
+        snapshot: record,
+        merge: false,
+      });
     });
 
     await batch.commit();
@@ -326,36 +697,54 @@ async function importCustomers(customers, action = "imported") {
 }
 
 async function loadCustomerHistory(customerId) {
-  const historyQuery = query(
-    historyCollection,
-    where("entityId", "==", customerId),
+  const [directSnapshot, linkedSnapshot] = await Promise.all([
+    getDocs(query(historyCollection, where("entityId", "==", customerId))),
+    getDocs(query(historyCollection, where("customerId", "==", customerId))),
+  ]);
+
+  const entries = new Map();
+
+  [...directSnapshot.docs, ...linkedSnapshot.docs].forEach((snapshot) => {
+    entries.set(snapshot.id, normalizeHistory(snapshot));
+  });
+
+  return [...entries.values()].sort((a, b) =>
+    String(b.changedAt).localeCompare(String(a.changedAt)),
   );
-
-  const snapshot = await getDocs(historyQuery);
-
-  return snapshot.docs
-    .map(normalizeHistory)
-    .filter((entry) => entry.entityType === "customer")
-    .sort((a, b) => String(b.changedAt).localeCompare(String(a.changedAt)));
 }
 
-async function offerInitialMigration() {
+async function offerInitialMigration(emptyCollections, localData) {
   if (migrationHandled) {
     return;
   }
 
   migrationHandled = true;
 
-  const localCustomers =
-    window.crmStateBridge?.getLocalCustomersForMigration?.() || [];
+  const candidates = emptyCollections
+    .map((collectionName) => ({
+      collectionName,
+      records: localData[collectionName] || [],
+    }))
+    .filter((item) => item.records.length);
 
-  if (!localCustomers.length) {
+  if (!candidates.length) {
     return;
   }
 
+  const labels = {
+    customers: "Kunden",
+    activities: "Aktivitäten",
+    appointments: "Termine",
+    followups: "Wiedervorlagen",
+  };
+
+  const overview = candidates
+    .map((item) => `• ${labels[item.collectionName]}: ${item.records.length}`)
+    .join("\n");
+
   const confirmed = window.confirm(
-    `Die zentrale Kundendatenbank ist noch leer.\n\n` +
-      `Es wurden ${localCustomers.length} lokale Kundendatensätze gefunden.\n\n` +
+    `In Firestore fehlen noch zentrale Datenbestände.\n\n` +
+      `Lokal wurden folgende Datensätze gefunden:\n${overview}\n\n` +
       `Sollen diese jetzt einmalig nach Firestore übernommen werden?`,
   );
 
@@ -363,48 +752,108 @@ async function offerInitialMigration() {
     return;
   }
 
-  await importCustomers(localCustomers, "migrated");
+  for (const candidate of candidates) {
+    await importRecords(
+      candidate.collectionName,
+      candidate.records,
+      "migrated",
+    );
+  }
 }
 
-function startCustomerSync() {
-  if (unsubscribeCustomers) {
-    return Promise.resolve();
+function sortedRecords(collectionName, records) {
+  const copy = [...records];
+
+  if (collectionName === "customers") {
+    return copy.sort((a, b) =>
+      String(a.name || "").localeCompare(String(b.name || ""), "de"),
+    );
   }
 
-  return new Promise((resolve, reject) => {
-    let firstSnapshot = true;
+  if (collectionName === "activities") {
+    return copy.sort((a, b) =>
+      `${b.date || ""}${b.createdAt || ""}`.localeCompare(
+        `${a.date || ""}${a.createdAt || ""}`,
+      ),
+    );
+  }
 
-    unsubscribeCustomers = onSnapshot(
-      customerCollection,
-      async (snapshot) => {
-        const customers = snapshot.docs
-          .map(normalizeCustomer)
-          .sort((a, b) =>
-            String(a.name || "").localeCompare(String(b.name || ""), "de"),
+  if (collectionName === "appointments") {
+    return copy.sort((a, b) =>
+      `${a.date || ""}${a.time || ""}`.localeCompare(
+        `${b.date || ""}${b.time || ""}`,
+      ),
+    );
+  }
+
+  return copy.sort((a, b) =>
+    String(a.due || "").localeCompare(String(b.due || "")),
+  );
+}
+
+function startAllDataSync() {
+  if (syncPromise) {
+    return syncPromise;
+  }
+
+  syncPromise = new Promise((resolve, reject) => {
+    const collectionNames = Object.keys(collections);
+    const localData =
+      window.crmStateBridge?.getLocalDataForMigration?.() || {};
+    const firstSnapshots = new Map();
+    let settled = false;
+
+    function finishIfReady() {
+      if (firstSnapshots.size !== collectionNames.length || settled) {
+        return;
+      }
+
+      settled = true;
+
+      const emptyCollections = collectionNames.filter(
+        (name) => firstSnapshots.get(name) === true,
+      );
+
+      offerInitialMigration(emptyCollections, localData)
+        .then(resolve)
+        .catch(reject);
+    }
+
+    collectionNames.forEach((collectionName) => {
+      let firstSnapshot = true;
+
+      unsubscribers[collectionName] = onSnapshot(
+        collections[collectionName],
+        (snapshot) => {
+          const records = sortedRecords(
+            collectionName,
+            snapshot.docs.map(normalizeSnapshot),
           );
 
-        window.crmStateBridge?.replaceCustomersFromFirestore?.(customers);
+          window.crmStateBridge?.replaceCollectionFromFirestore?.(
+            collectionName,
+            records,
+          );
 
-        if (firstSnapshot) {
-          firstSnapshot = false;
+          if (firstSnapshot) {
+            firstSnapshot = false;
+            firstSnapshots.set(collectionName, snapshot.empty);
+            finishIfReady();
+          }
+        },
+        (error) => {
+          console.error(`${collectionName} synchronization failed:`, error);
 
-          try {
-            if (snapshot.empty) {
-              await offerInitialMigration();
-            }
-
-            resolve();
-          } catch (error) {
+          if (!settled) {
+            settled = true;
             reject(error);
           }
-        }
-      },
-      (error) => {
-        console.error("Customer synchronization failed:", error);
-        reject(error);
-      },
-    );
+        },
+      );
+    });
   });
+
+  return syncPromise;
 }
 
 window.crmFirestore = {
@@ -412,9 +861,17 @@ window.crmFirestore = {
   updateCustomer,
   archiveCustomerRecord,
   restoreCustomerRecord,
-  updateCustomerSystemFields,
+  createActivity,
+  updateActivity,
+  deleteActivityRecord,
+  createAppointment,
+  updateAppointment,
+  deleteAppointmentRecord,
+  createFollowup,
+  updateFollowup,
+  deleteFollowupRecord,
   importCustomers,
   loadCustomerHistory,
 };
 
-export { startCustomerSync };
+export { startAllDataSync };

@@ -71,6 +71,10 @@ function followupCard(followup) {
 
       <div class="followup-meta">
         <span>Fällig: ${formatDate(followup.due)}</span>
+        <small class="record-audit">
+          Zuletzt: ${formatDateTime(followup.updatedAt)}
+          · ${followup.updatedByEmail || "–"}
+        </small>
       </div>
 
       <div class="followup-actions">
@@ -140,7 +144,7 @@ function openFollowupEditForm(followupId) {
   );
 }
 
-function completeFollowup(followupId) {
+async function completeFollowup(followupId) {
   const followup = followupById(followupId);
 
   if (!followup) {
@@ -148,13 +152,21 @@ function completeFollowup(followupId) {
     return;
   }
 
-  followup.status = "Erledigt";
-  saveData();
+  try {
+    await window.crmFirestore.updateFollowup(
+      followup,
+      { ...followup, status: "Erledigt" },
+      "completed",
+    );
 
-  toast("Die Wiedervorlage wurde erledigt.");
+    toast("Die Wiedervorlage wurde erledigt.");
+  } catch (error) {
+    console.error("Follow-up completion failed:", error);
+    toast("Die Wiedervorlage konnte nicht erledigt werden.");
+  }
 }
 
-function reopenFollowup(followupId) {
+async function reopenFollowup(followupId) {
   const followup = followupById(followupId);
 
   if (!followup) {
@@ -162,13 +174,21 @@ function reopenFollowup(followupId) {
     return;
   }
 
-  followup.status = "Offen";
-  saveData();
+  try {
+    await window.crmFirestore.updateFollowup(
+      followup,
+      { ...followup, status: "Offen" },
+      "reopened",
+    );
 
-  toast("Die Wiedervorlage wurde wieder geöffnet.");
+    toast("Die Wiedervorlage wurde wieder geöffnet.");
+  } catch (error) {
+    console.error("Follow-up reopening failed:", error);
+    toast("Die Wiedervorlage konnte nicht wieder geöffnet werden.");
+  }
 }
 
-function deleteFollowup(followupId) {
+async function deleteFollowup(followupId) {
   const followup = followupById(followupId);
 
   if (!followup) {
@@ -188,11 +208,11 @@ function deleteFollowup(followupId) {
     return;
   }
 
-  data.followups = data.followups.filter(
-    (item) => item.id !== followupId,
-  );
-
-  saveData();
-
-  toast("Die Wiedervorlage wurde gelöscht.");
+  try {
+    await window.crmFirestore.deleteFollowupRecord(followup);
+    toast("Die Wiedervorlage wurde gelöscht.");
+  } catch (error) {
+    console.error("Follow-up deletion failed:", error);
+    toast("Die Wiedervorlage konnte nicht gelöscht werden.");
+  }
 }

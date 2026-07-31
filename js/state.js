@@ -65,19 +65,24 @@ function loadData() {
 
 function saveData() {
   /*
-   * Aktivitäten, Termine und Wiedervorlagen bleiben in diesem Ausbau
-   * noch lokal. Die Kundenliste wird zusätzlich als lokaler Cache
-   * mitgespeichert, ist aber nicht mehr die führende Datenquelle.
+   * Firestore ist die führende Datenquelle.
+   * localStorage dient nur noch als lokaler Cache und als Quelle für die
+   * einmalige Übernahme alter Bestände.
    */
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
   renderAll();
 }
 
-function replaceCustomersFromFirestore(customers) {
-  data.customers = customers;
+function replaceCollectionFromFirestore(collectionName, records) {
+  if (!["customers", "activities", "appointments", "followups"].includes(collectionName)) {
+    return;
+  }
+
+  data[collectionName] = records;
   localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
 
   if (
+    collectionName === "customers" &&
     currentCustomerId &&
     !data.customers.some((customer) => customer.id === currentCustomerId)
   ) {
@@ -87,15 +92,28 @@ function replaceCustomersFromFirestore(customers) {
   if (typeof renderAll === "function") {
     renderAll();
   }
+
+  if (
+    collectionName !== "customers" &&
+    currentCustomerId &&
+    typeof renderCustomerDetail === "function"
+  ) {
+    renderCustomerDetail(currentCustomerId);
+  }
 }
 
-function getLocalCustomersForMigration() {
-  return structuredClone(data.customers || []);
+function getLocalDataForMigration() {
+  return structuredClone({
+    customers: data.customers || [],
+    activities: data.activities || [],
+    appointments: data.appointments || [],
+    followups: data.followups || [],
+  });
 }
 
 window.crmStateBridge = {
-  replaceCustomersFromFirestore,
-  getLocalCustomersForMigration,
+  replaceCollectionFromFirestore,
+  getLocalDataForMigration,
 };
 
 function toast(message) {

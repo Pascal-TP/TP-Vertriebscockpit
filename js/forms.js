@@ -241,41 +241,33 @@ async function saveForm(type, values, options = {}) {
   const recordId = options.recordId || "";
 
   try {
+    let changed = true;
+
     if (type === "customer") {
-      const changed = await saveCustomer(values, mode, recordId);
-
-      if (changed === false) {
-        toast("Es wurden keine Änderungen festgestellt.");
-      } else {
-        toast(
-          mode === "edit"
-            ? "Die Änderungen wurden gespeichert."
-            : "Der Kunde wurde gespeichert.",
-        );
-      }
-
-      return true;
+      changed = await saveCustomer(values, mode, recordId);
     }
 
     if (type === "activity") {
-      saveActivity(values, mode, recordId);
+      changed = await saveActivity(values, mode, recordId);
     }
 
     if (type === "appointment") {
-      saveAppointment(values, mode, recordId);
+      changed = await saveAppointment(values, mode, recordId);
     }
 
     if (type === "followup") {
-      saveFollowup(values, mode, recordId);
+      changed = await saveFollowup(values, mode, recordId);
     }
 
-    saveData();
-
-    toast(
-      mode === "edit"
-        ? "Die Änderungen wurden gespeichert."
-        : "Der Eintrag wurde gespeichert.",
-    );
+    if (changed === false) {
+      toast("Es wurden keine Änderungen festgestellt.");
+    } else {
+      toast(
+        mode === "edit"
+          ? "Die Änderungen wurden gespeichert."
+          : "Der Eintrag wurde gespeichert.",
+      );
+    }
 
     return true;
   } catch (error) {
@@ -327,126 +319,121 @@ async function saveCustomer(values, mode, recordId) {
   return true;
 }
 
-function saveActivity(values, mode, recordId) {
+async function saveActivity(values, mode, recordId) {
   if (mode === "edit") {
     const activity = activityById(recordId);
 
     if (!activity) {
-      toast("Die Aktivität wurde nicht gefunden.");
-      return;
+      throw new Error("Die Aktivität wurde nicht gefunden.");
     }
 
-    const previousCustomerId = activity.customerId;
+    const updatedActivity = {
+      ...activity,
+      ...values,
+      id: activity.id,
+    };
 
-    Object.assign(activity, values);
-
-    syncCustomerLastContact(previousCustomerId);
-    syncCustomerLastContact(activity.customerId);
-
-    const changedCustomer = customerById(activity.customerId);
-
-    applyActivityResultToCustomer(changedCustomer, activity.result);
-
-    window.crmFirestore.updateCustomerSystemFields(
-      changedCustomer,
+    return window.crmFirestore.updateActivity(
+      activity,
+      updatedActivity,
       {
-        lastContact: changedCustomer?.lastContact || "",
-        pipeline: changedCustomer?.pipeline || "",
+        activities: data.activities,
+        customers: data.customers,
       },
-      "Kundendaten aus einer bearbeiteten Aktivität aktualisiert",
     );
-
-    return;
   }
 
-  values.id = `A-${Date.now()}`;
-  data.activities.push(values);
+  const activity = {
+    ...values,
+    id: `A-${Date.now()}`,
+  };
 
-  const customer = customerById(values.customerId);
+  const followup =
+    values.next && values.due
+      ? {
+          id: `W-${Date.now() + 1}`,
+          customerId: values.customerId,
+          owner: values.owner,
+          due: values.due,
+          priority: "Mittel",
+          task: values.next,
+          status: "Offen",
+        }
+      : null;
 
-  syncCustomerLastContact(values.customerId);
-  applyActivityResultToCustomer(customer, values.result);
+  await window.crmFirestore.createActivity(activity, {
+    activity,
+    activities: data.activities,
+    customer: customerById(values.customerId),
+    followup,
+  });
 
-  window.crmFirestore.updateCustomerSystemFields(
-    customer,
-    {
-      lastContact: customer?.lastContact || "",
-      pipeline: customer?.pipeline || "",
-    },
-    "Kundendaten aus einer neuen Aktivität aktualisiert",
-  );
-
-  if (values.next && values.due) {
-    data.followups.push({
-      id: `W-${Date.now() + 1}`,
-      customerId: values.customerId,
-      owner: values.owner,
-      due: values.due,
-      priority: "Mittel",
-      task: values.next,
-      status: "Offen",
-    });
-  }
+  return true;
 }
 
-function saveAppointment(values, mode, recordId) {
+async function saveAppointment(values, mode, recordId) {
   if (mode === "edit") {
     const appointment = appointmentById(recordId);
 
     if (!appointment) {
-      toast("Der Termin wurde nicht gefunden.");
-      return;
+      throw new Error("Der Termin wurde nicht gefunden.");
     }
 
-    const previousCustomerId = appointment.customerId;
+    const updatedAppointment = {
+      ...appointment,
+      ...values,
+      id: appointment.id,
+    };
 
-    Object.assign(appointment, values);
-
-    syncCustomerNextAppointment(previousCustomerId);
-    syncCustomerNextAppointment(appointment.customerId);
-
-    [previousCustomerId, appointment.customerId]
-      .filter((id, index, ids) => id && ids.indexOf(id) === index)
-      .forEach((customerId) => {
-        const customer = customerById(customerId);
-
-        window.crmFirestore.updateCustomerSystemFields(
-          customer,
-          { nextAppointment: customer?.nextAppointment || "" },
-          "Nächster Kundentermin automatisch aktualisiert",
-        );
-      });
-
-    return;
+    return window.crmFirestore.updateAppointment(
+      appointment,
+      updatedAppointment,
+      {
+        appointments: data.appointments,
+        customers: data.customers,
+      },
+    );
   }
 
-  values.id = `T-${Date.now()}`;
-  data.appointments.push(values);
+  const appointment = {
+    ...values,
+    id: `T-${Date.now()}`,
+  };
 
-  syncCustomerNextAppointment(values.customerId);
+  await window.crmFirestore.createAppointment(appointment, {
+    appointments: data.appointments,
+    customers: data.customers,
+  });
 
-  const customer = customerById(values.customerId);
-
-  window.crmFirestore.updateCustomerSystemFields(
-    customer,
-    { nextAppointment: customer?.nextAppointment || "" },
-    "Nächster Kundentermin automatisch aktualisiert",
-  );
+  return true;
 }
 
-function saveFollowup(values, mode, recordId) {
+async function saveFollowup(values, mode, recordId) {
   if (mode === "edit") {
     const followup = followupById(recordId);
 
     if (!followup) {
-      toast("Die Wiedervorlage wurde nicht gefunden.");
-      return;
+      throw new Error("Die Wiedervorlage wurde nicht gefunden.");
     }
 
-    Object.assign(followup, values);
-    return;
+    const updatedFollowup = {
+      ...followup,
+      ...values,
+      id: followup.id,
+    };
+
+    return window.crmFirestore.updateFollowup(
+      followup,
+      updatedFollowup,
+      "updated",
+    );
   }
 
-  values.id = `W-${Date.now()}`;
-  data.followups.push(values);
+  const followup = {
+    ...values,
+    id: `W-${Date.now()}`,
+  };
+
+  await window.crmFirestore.createFollowup(followup);
+  return true;
 }

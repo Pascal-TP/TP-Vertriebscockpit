@@ -220,25 +220,10 @@ function bindFormEvents() {
 
 function bindDemoEvents() {
   $("#resetDemoButton").onclick = () => {
-    const confirmed = window.confirm(
-      "Dabei werden nur die lokalen Demo-Aktivitäten, Termine und Wiedervorlagen zurückgesetzt.\n\n" +
-        "Die zentral in Firestore gespeicherten Kunden bleiben unverändert.\n\n" +
-        "Fortfahren?",
+    window.alert(
+      "Alle CRM-Daten werden jetzt zentral in Firestore gespeichert.\n\n" +
+        "Der bisherige Demo-Reset ist deshalb deaktiviert, damit keine gemeinsamen Daten versehentlich überschrieben werden.",
     );
-
-    if (!confirmed) {
-      return;
-    }
-
-    data.activities = structuredClone(seedData.activities);
-    data.appointments = structuredClone(seedData.appointments);
-    data.followups = structuredClone(seedData.followups);
-    currentCustomerId = null;
-
-    saveData();
-    renderEmptyCustomerDetail();
-
-    toast("Lokale Demodaten wurden zurückgesetzt.");
   };
 }
 

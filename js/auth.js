@@ -1,5 +1,5 @@
 import { crmAuth } from "./firebase.js";
-import { startCustomerSync } from "./firestore.js";
+import { startAllDataSync } from "./firestore.js";
 
 import {
   browserLocalPersistence,
@@ -103,7 +103,7 @@ async function showAuthenticatedApp(user) {
   appShell.classList.remove("auth-hidden");
 
   try {
-    await startCustomerSync();
+    await startAllDataSync();
 
     window.dispatchEvent(
       new CustomEvent("crm-auth-ready", {
@@ -115,7 +115,7 @@ async function showAuthenticatedApp(user) {
     appShell.classList.add("auth-hidden");
     loginScreen.classList.remove("auth-hidden");
     showLoginMessage(
-      "Die zentrale Kundendatenbank konnte nicht geladen werden. Bitte prüfen Sie die Firestore-Regeln und die Internetverbindung.",
+      "Die zentrale CRM-Datenbank konnte nicht geladen werden. Bitte prüfen Sie die Firestore-Regeln und die Internetverbindung.",
     );
   }
 }

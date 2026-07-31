@@ -37,6 +37,10 @@ function renderActivities() {
                 ? '<br><span class="tag">Handnotiz vorhanden</span>'
                 : ""
             }
+            <div class="record-audit">
+              Zuletzt: ${formatDateTime(activity.updatedAt)}
+              · ${activity.updatedByEmail || "–"}
+            </div>
           </td>
 
           <td>
@@ -88,7 +92,7 @@ function openActivityEditForm(activityId) {
   );
 }
 
-function deleteActivity(activityId) {
+async function deleteActivity(activityId) {
   const activity = activityById(activityId);
 
   if (!activity) {
@@ -108,16 +112,17 @@ function deleteActivity(activityId) {
     return;
   }
 
-  const customerId = activity.customerId;
+  try {
+    await window.crmFirestore.deleteActivityRecord(activity, {
+      activities: data.activities,
+      customers: data.customers,
+    });
 
-  data.activities = data.activities.filter(
-    (item) => item.id !== activityId,
-  );
-
-  syncCustomerLastContact(customerId);
-  saveData();
-
-  toast("Die Aktivität wurde gelöscht.");
+    toast("Die Aktivität wurde gelöscht.");
+  } catch (error) {
+    console.error("Activity deletion failed:", error);
+    toast("Die Aktivität konnte nicht gelöscht werden.");
+  }
 }
 
 function syncCustomerLastContact(customerId) {

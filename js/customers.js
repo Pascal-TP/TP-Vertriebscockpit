@@ -289,7 +289,7 @@ function renderCustomerDetail(id) {
 
       <section>
         <div class="section-title-row">
-          <h3 class="section-title">Änderungshistorie</h3>
+          <h3 class="section-title">CRM-Historie</h3>
           <button
             type="button"
             class="text-button"
@@ -367,7 +367,10 @@ async function renderCustomerAuditHistory(customerId) {
             (entry) => `
               <article class="audit-entry">
                 <div class="audit-entry-head">
-                  <strong>${historyActionLabel(entry.action)}</strong>
+                  <strong>
+                    ${historyEntityLabel(entry.entityType)}
+                    · ${historyActionLabel(entry.action)}
+                  </strong>
                   <time>${formatDateTime(entry.changedAt)}</time>
                 </div>
 
@@ -396,6 +399,17 @@ async function renderCustomerAuditHistory(customerId) {
   }
 }
 
+function historyEntityLabel(entityType) {
+  const labels = {
+    customer: "Kunde",
+    activity: "Aktivität",
+    appointment: "Termin",
+    followup: "Wiedervorlage",
+  };
+
+  return labels[entityType] || "Eintrag";
+}
+
 function historyActionLabel(action) {
   const labels = {
     created: "Angelegt",
@@ -405,6 +419,9 @@ function historyActionLabel(action) {
     imported: "CSV-Import",
     migrated: "Lokale Übernahme",
     "system-updated": "Automatisch aktualisiert",
+    completed: "Erledigt",
+    reopened: "Wieder geöffnet",
+    deleted: "Gelöscht",
   };
 
   return labels[action] || "Geändert";
