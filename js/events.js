@@ -10,6 +10,7 @@ function bindEvents() {
   bindFormEvents();
   bindSearchEvents();
   bindImportEvents();
+  bindAdminEvents();
 }
 
 function bindNavigationEvents() {
@@ -88,6 +89,11 @@ function handleActionButton(button) {
 
   if (action === "archive-customer") {
     archiveCustomer(recordId);
+    return;
+  }
+
+  if (action === "permanently-delete-customer") {
+    permanentlyDeleteCustomer(recordId);
     return;
   }
 

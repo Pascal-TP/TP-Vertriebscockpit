@@ -191,6 +191,20 @@ function renderCustomerDetail(id) {
               >
                 ↺ Wiederherstellen
               </button>
+
+              ${
+                isAdmin()
+                  ? `
+                    <button
+                      class="danger-button"
+                      data-action="permanently-delete-customer"
+                      data-id="${customer.id}"
+                    >
+                      Endgültig löschen
+                    </button>
+                  `
+                  : ""
+              }
             `
             : `
               <button
@@ -623,5 +637,44 @@ async function restoreCustomer(customerId) {
   } catch (error) {
     console.error("Customer restoration failed:", error);
     toast("Der Kunde konnte nicht wiederhergestellt werden.");
+  }
+}
+
+
+async function permanentlyDeleteCustomer(customerId) {
+  if (!isAdmin()) {
+    toast("Nur Administratoren dürfen Kunden endgültig löschen.");
+    return;
+  }
+
+  const customer = customerById(customerId);
+  if (!customer || customer.archived !== true) {
+    toast("Nur archivierte Kunden können endgültig gelöscht werden.");
+    return;
+  }
+
+  const enteredName = window.prompt(
+    `Der Kunde und alle zugehörigen Aktivitäten, Termine und Wiedervorlagen werden endgültig gelöscht.\n\nDie Historie bleibt erhalten.\n\nBitte geben Sie zur Bestätigung den Kundennamen exakt ein:\n${customer.name}`,
+  );
+
+  if (enteredName === null) return;
+
+  if (enteredName.trim() !== String(customer.name || "").trim()) {
+    window.alert("Der eingegebene Kundenname stimmt nicht überein. Der Kunde wurde nicht gelöscht.");
+    return;
+  }
+
+  try {
+    await window.crmFirestore.permanentlyDeleteCustomer(customer, {
+      activities: data.activities,
+      appointments: data.appointments,
+      followups: data.followups,
+    });
+
+    currentCustomerId = null;
+    toast(`Kunde „${customer.name}“ wurde endgültig gelöscht.`);
+  } catch (error) {
+    console.error("Permanent customer deletion failed:", error);
+    window.alert(error?.message || "Der Kunde konnte nicht endgültig gelöscht werden.");
   }
 }

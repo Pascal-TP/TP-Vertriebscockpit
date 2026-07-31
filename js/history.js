@@ -8,6 +8,7 @@ const historyEntityLabels = {
   activity: "Aktivität",
   appointment: "Termin",
   followup: "Wiedervorlage",
+  employee: "Außendienstmitarbeiter",
 };
 
 const historyActionLabels = {
@@ -21,6 +22,8 @@ const historyActionLabels = {
   imported: "Importiert",
   migrated: "Übernommen",
   "system-updated": "Automatisch aktualisiert",
+  deactivated: "Deaktiviert",
+  "permanently-deleted": "Endgültig gelöscht",
 };
 
 function customerNameForHistory(entry) {

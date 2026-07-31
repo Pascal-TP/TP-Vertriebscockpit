@@ -31,6 +31,11 @@ const viewMeta = {
     "Alle Änderungen im Vertriebscockpit nachvollziehen",
     "Zentrale Änderungs- und Aktivitätshistorie",
   ],
+  admin: [
+    "Administration",
+    "Außendienstmitarbeiter und administrative Funktionen verwalten",
+    "Nur für Administratoren",
+  ],
   import: [
     "CSV-Import",
     "Bestehende Kundenlisten strukturiert übernehmen",
@@ -44,6 +49,11 @@ function showView(name) {
   $$(".nav-button").forEach((b) =>
     b.classList.toggle("active", b.dataset.view === name),
   );
+  if (name === "admin" && !isAdmin()) {
+    toast("Dieser Bereich ist nur für Administratoren verfügbar.");
+    return;
+  }
+
   const [title, sub, hint] = viewMeta[name];
   $("#pageTitle").textContent = title;
   $("#pageSubtitle").textContent = sub;
@@ -51,12 +61,22 @@ function showView(name) {
   $("#locationHint").textContent = hint;
   $("#sidebar").classList.remove("open");
   if (name === "history" && typeof renderGlobalHistory === "function") renderGlobalHistory();
+  if (name === "admin" && typeof renderAdmin === "function") renderAdmin();
 }
 
 function fillOwnerSelects() {
+  refreshOwners();
+
   ["dashboardOwner", "customerOwnerFilter"].forEach((id) => {
     const el = $("#" + id);
-    const first = el.options[0].outerHTML;
-    el.innerHTML = first + owners.map((o) => `<option>${o}</option>`).join("");
+    if (!el) return;
+
+    const current = el.value || "all";
+    const first = el.options[0]?.outerHTML || '<option value="all">Alle</option>';
+    el.innerHTML = first + owners.map((owner) => `<option value="${owner}">${owner}</option>`).join("");
+
+    if ([...el.options].some((option) => option.value === current)) {
+      el.value = current;
+    }
   });
 }

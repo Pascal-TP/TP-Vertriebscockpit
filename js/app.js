@@ -17,6 +17,10 @@ function initializeCRM() {
 
   crmInitialized = true;
 
+  if (window.crmCurrentUserProfile) {
+    setCurrentUserProfile(window.crmCurrentUserProfile);
+  }
+  applyRoleToUi();
   fillOwnerSelects();
   bindEvents();
   bindDuplicateEvents();

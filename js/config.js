@@ -1,7 +1,27 @@
 "use strict";
 
 const STORAGE_KEY = "tp-vertriebscockpit-demo-v1";
-const owners = ["Anna Becker", "Michael Krüger", "Svenja Peters"];
+const owners = [];
+
+function refreshOwners() {
+  const names = new Set();
+
+  (data.employees || [])
+    .filter((employee) => employee.active !== false)
+    .forEach((employee) => {
+      const name = String(employee.displayName || "").trim();
+      if (name) names.add(name);
+    });
+
+  ["customers", "activities", "appointments", "followups"].forEach((collectionName) => {
+    (data[collectionName] || []).forEach((record) => {
+      const name = String(record.owner || "").trim();
+      if (name) names.add(name);
+    });
+  });
+
+  owners.splice(0, owners.length, ...[...names].sort((a, b) => a.localeCompare(b, "de")));
+}
 const pipelineStages = [
   "01 Lead",
   "02 Kontaktversuch",

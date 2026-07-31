@@ -3,6 +3,7 @@ import { crmAuth, crmDb } from "./firebase.js";
 import {
   collection,
   doc,
+  getDoc,
   getDocs,
   onSnapshot,
   query,
@@ -16,6 +17,7 @@ const collections = {
   activities: collection(crmDb, "activities"),
   appointments: collection(crmDb, "appointments"),
   followups: collection(crmDb, "followups"),
+  employees: collection(crmDb, "employees"),
 };
 
 const historyCollection = collection(crmDb, "history");
@@ -44,6 +46,25 @@ function actor() {
     email: user.email || "",
     name: user.displayName || user.email || "Angemeldeter Benutzer",
   };
+}
+
+async function loadCurrentUserProfile(uid) {
+  const snapshot = await getDoc(doc(crmDb, "users", uid));
+
+  if (!snapshot.exists()) {
+    throw new Error("Für diesen Benutzer wurde kein Rollenprofil in Firestore gefunden.");
+  }
+
+  return {
+    id: snapshot.id,
+    ...snapshot.data(),
+  };
+}
+
+function requireAdmin() {
+  if (!window.crmCurrentUserProfile || window.crmCurrentUserProfile.role !== "admin") {
+    throw new Error("Diese Funktion ist ausschließlich für Administratoren freigegeben.");
+  }
 }
 
 function timestampToIso(value) {
@@ -651,6 +672,85 @@ async function deleteFollowupRecord(followup) {
   await batch.commit();
 }
 
+
+async function createEmployee(employee) {
+  requireAdmin();
+  const batch = writeBatch(crmDb);
+
+  addEntityWrite(batch, {
+    collectionName: "employees",
+    entityId: employee.id,
+    data: employee,
+    action: "created",
+    customerId: "",
+    summary: `Außendienstmitarbeiter „${employee.displayName || employee.id}“ angelegt`,
+    snapshot: employee,
+    merge: false,
+  });
+
+  await batch.commit();
+}
+
+async function updateEmployee(before, after) {
+  requireAdmin();
+  const changes = buildChanges(before, after);
+  if (!Object.keys(changes).length) return false;
+
+  const batch = writeBatch(crmDb);
+  addEntityWrite(batch, {
+    collectionName: "employees",
+    entityId: after.id,
+    data: after,
+    action: after.active === false && before.active !== false ? "deactivated" : "updated",
+    customerId: "",
+    summary: after.active === false && before.active !== false
+      ? `Außendienstmitarbeiter „${after.displayName || after.id}“ deaktiviert`
+      : `Außendienstmitarbeiter „${after.displayName || after.id}“ bearbeitet`,
+    changes,
+    snapshot: after,
+  });
+
+  await batch.commit();
+  return true;
+}
+
+async function permanentlyDeleteCustomer(customer, relatedRecords) {
+  requireAdmin();
+
+  const related = [
+    ...(relatedRecords.activities || []).filter((record) => record.customerId === customer.id).map((record) => ["activities", record]),
+    ...(relatedRecords.appointments || []).filter((record) => record.customerId === customer.id).map((record) => ["appointments", record]),
+    ...(relatedRecords.followups || []).filter((record) => record.customerId === customer.id).map((record) => ["followups", record]),
+  ];
+
+  if (related.length + 2 > 500) {
+    throw new Error("Für diesen Kunden sind zu viele verknüpfte Datensätze vorhanden. Bitte wenden Sie sich an die Administration.");
+  }
+
+  const batch = writeBatch(crmDb);
+
+  related.forEach(([collectionName, record]) => {
+    batch.delete(doc(crmDb, collectionName, record.id));
+  });
+
+  batch.delete(doc(crmDb, "customers", customer.id));
+
+  addHistory(batch, {
+    entityType: "customer",
+    entityId: customer.id,
+    customerId: customer.id,
+    action: "permanently-deleted",
+    summary: `Kunde „${customer.name || customer.id}“ endgültig gelöscht`,
+    changes: {},
+    snapshot: {
+      ...customer,
+      deletedRelatedRecords: related.length,
+    },
+  });
+
+  await batch.commit();
+}
+
 async function importCustomers(customers, action = "imported") {
   await importRecords("customers", customers, action);
 }
@@ -718,6 +818,12 @@ function sortedRecords(collectionName, records) {
   if (collectionName === "customers") {
     return copy.sort((a, b) =>
       String(a.name || "").localeCompare(String(b.name || ""), "de"),
+    );
+  }
+
+  if (collectionName === "employees") {
+    return copy.sort((a, b) =>
+      String(a.displayName || "").localeCompare(String(b.displayName || ""), "de"),
     );
   }
 
@@ -832,6 +938,10 @@ window.crmFirestore = {
   importCustomers,
   loadCustomerHistory,
   subscribeGlobalHistory,
+  loadCurrentUserProfile,
+  createEmployee,
+  updateEmployee,
+  permanentlyDeleteCustomer,
 };
 
-export { startAllDataSync };
+export { startAllDataSync, loadCurrentUserProfile };

@@ -1,5 +1,5 @@
 import { crmAuth } from "./firebase.js";
-import { startAllDataSync } from "./firestore.js";
+import { loadCurrentUserProfile, startAllDataSync } from "./firestore.js";
 
 import {
   browserLocalPersistence,
@@ -106,6 +106,17 @@ async function showAuthenticatedApp(user) {
   loadingOverlay.classList.remove("auth-hidden");
 
   try {
+    const profile = await loadCurrentUserProfile(user.uid);
+
+    if (profile.active === false) {
+      throw new Error("Dieses Benutzerprofil wurde deaktiviert.");
+    }
+
+    window.crmCurrentUserProfile = profile;
+    window.dispatchEvent(
+      new CustomEvent("crm-role-ready", { detail: { user, profile } }),
+    );
+
     await startAllDataSync();
 
     loadingOverlay.classList.add("auth-hidden");
@@ -118,7 +129,8 @@ async function showAuthenticatedApp(user) {
     appShell.classList.add("auth-hidden");
     loginScreen.classList.remove("auth-hidden");
     showLoginMessage(
-      "Die zentrale CRM-Datenbank konnte nicht geladen werden. Bitte prüfen Sie die Firestore-Regeln und die Internetverbindung.",
+      error?.message ||
+      "Die zentrale CRM-Datenbank konnte nicht geladen werden. Bitte prüfen Sie das Rollenprofil, die Firestore-Regeln und die Internetverbindung.",
     );
   }
 }

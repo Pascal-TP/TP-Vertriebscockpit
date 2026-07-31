@@ -5,12 +5,23 @@ let data = {
   activities: [],
   appointments: [],
   followups: [],
+  employees: [],
 };
 
 let currentCustomerId = null;
 let calendarOffset = 0;
 let pendingImport = [];
 let activeNoteTarget = null;
+let currentUserProfile = null;
+
+function setCurrentUserProfile(profile) {
+  currentUserProfile = profile;
+  window.crmCurrentUserProfile = profile;
+}
+
+function isAdmin() {
+  return currentUserProfile?.role === "admin" && currentUserProfile?.active !== false;
+}
 
 const $ = (s) => document.querySelector(s);
 const $$ = (s) => [...document.querySelectorAll(s)];
@@ -61,9 +72,12 @@ function saveData() {
 }
 
 function replaceCollectionFromFirestore(collectionName, records) {
-  if (!["customers", "activities", "appointments", "followups"].includes(collectionName)) return;
+  if (!["customers", "activities", "appointments", "followups", "employees"].includes(collectionName)) return;
 
   data[collectionName] = records;
+
+  if (typeof refreshOwners === "function") refreshOwners();
+  if (typeof fillOwnerSelects === "function") fillOwnerSelects();
 
   if (
     collectionName === "customers" &&

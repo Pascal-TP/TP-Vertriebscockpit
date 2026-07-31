@@ -150,7 +150,7 @@ function openForm(type, preset = {}, options = {}) {
         (name === "date"
           ? iso(new Date())
           : name === "owner"
-            ? owners[0]
+            ? (owners[0] || "")
             : name === "status"
               ? "Offen"
               : "");
