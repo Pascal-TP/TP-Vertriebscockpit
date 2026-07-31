@@ -1392,3 +1392,43 @@ textarea {
 .table-actions .text-button {
     font-size: .7rem;
 }
+
+/* ==========================
+   Kundenarchiv
+========================== */
+
+.status-pill.archived {
+    background: #e8ecef;
+    color: #5f6d76;
+}
+
+.archived-customer-row {
+    background: #fafbfc;
+}
+
+.archived-customer-row .avatar {
+    background: #e8ecef;
+    color: #667680;
+}
+
+.archive-button {
+    color: var(--red);
+}
+
+.archive-button:hover {
+    background: #fdecec;
+}
+
+.restore-button {
+    color: var(--green);
+}
+
+.restore-button:hover {
+    background: #e9f6f0;
+}
+
+.archive-note {
+    color: var(--muted);
+    font-size: .78rem;
+    font-weight: 600;
+}
