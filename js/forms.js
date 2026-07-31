@@ -3,6 +3,7 @@
 const formConfigs = {
   customer: {
     title: "Kunde anlegen",
+    editTitle: "Kunde bearbeiten",
     subtitle: "Stammdaten und Vertriebszuordnung",
     fields: [
       ["name", "Firma / Kundenname", "text", true],
@@ -30,6 +31,7 @@ const formConfigs = {
       ["note", "Kurznotiz", "textarea"],
     ],
   },
+
   activity: {
     title: "Kontakt erfassen",
     subtitle: "Telefonat, E-Mail, Besuch oder Akquise dokumentieren",
@@ -91,6 +93,7 @@ const formConfigs = {
       ["handNote", "Handschriftliche Notiz", "hand"],
     ],
   },
+
   appointment: {
     title: "Termin anlegen",
     subtitle: "Kundentermin für Innen- und Außendienst planen",
@@ -103,6 +106,7 @@ const formConfigs = {
       ["note", "Vorbereitung / Notiz", "textarea"],
     ],
   },
+
   followup: {
     title: "Wiedervorlage anlegen",
     subtitle: "Konkreten nächsten Schritt terminieren",
@@ -116,14 +120,28 @@ const formConfigs = {
     ],
   },
 };
-function openForm(type, preset = {}) {
-  const cfg = formConfigs[type];
-  $("#dialogTitle").textContent = cfg.title;
-  $("#dialogSubtitle").textContent = cfg.subtitle;
-  $("#dynamicForm").dataset.type = type;
-  $("#dialogFields").innerHTML = cfg.fields
+
+function openForm(type, preset = {}, options = {}) {
+  const config = formConfigs[type];
+  const mode = options.mode || "create";
+  const recordId = options.recordId || "";
+
+  $("#dialogTitle").textContent =
+    mode === "edit" && config.editTitle ? config.editTitle : config.title;
+
+  $("#dialogSubtitle").textContent = config.subtitle;
+
+  const form = $("#dynamicForm");
+  form.dataset.type = type;
+  form.dataset.mode = mode;
+  form.dataset.recordId = recordId;
+
+  $("#dialogSaveButton").textContent =
+    mode === "edit" ? "Änderungen speichern" : "Speichern";
+
+  $("#dialogFields").innerHTML = config.fields
     .map(([name, label, input, opts]) => {
-      const val =
+      const value =
         preset[name] ??
         (name === "date"
           ? iso(new Date())
@@ -132,69 +150,196 @@ function openForm(type, preset = {}) {
             : name === "status"
               ? "Offen"
               : "");
+
       const required = opts === true ? "required" : "";
       let control = "";
-      if (input === "select")
-        control = `<select name="${name}" ${required}>${opts.map((o) => `<option ${o === val ? "selected" : ""}>${o}</option>`).join("")}</select>`;
-      else if (input === "customer")
-        control = `<select name="${name}" ${required}>${data.customers.map((c) => `<option value="${c.id}" ${c.id === val ? "selected" : ""}>${c.name} · ${c.city}</option>`).join("")}</select>`;
-      else if (input === "textarea")
-        control = `<textarea name="${name}" ${required}>${val}</textarea>`;
-      else if (input === "hand")
-        control = `<input type="hidden" name="${name}" value="${val}"><button type="button" class="secondary-button open-note">✎ Mit Stift schreiben</button><span class="hand-status">${val ? "Notiz vorhanden" : "Noch keine Handnotiz"}</span>`;
-      else
-        control = `<input name="${name}" type="${input}" value="${val}" ${required}>`;
-      return `<div class="field ${input === "textarea" || input === "hand" ? "full" : ""}"><label>${label}</label>${control}</div>`;
+
+      if (input === "select") {
+        control = `
+          <select name="${name}" ${required}>
+            ${opts
+              .map(
+                (option) => `
+                  <option ${option === value ? "selected" : ""}>
+                    ${option}
+                  </option>
+                `,
+              )
+              .join("")}
+          </select>
+        `;
+      } else if (input === "customer") {
+        control = `
+          <select name="${name}" ${required}>
+            ${data.customers
+              .map(
+                (customer) => `
+                  <option
+                    value="${customer.id}"
+                    ${customer.id === value ? "selected" : ""}
+                  >
+                    ${customer.name} · ${customer.city}
+                  </option>
+                `,
+              )
+              .join("")}
+          </select>
+        `;
+      } else if (input === "textarea") {
+        control = `
+          <textarea name="${name}" ${required}>${value}</textarea>
+        `;
+      } else if (input === "hand") {
+        control = `
+          <input
+            type="hidden"
+            name="${name}"
+            value="${value}"
+          >
+
+          <button
+            type="button"
+            class="secondary-button open-note"
+          >
+            ✎ Mit Stift schreiben
+          </button>
+
+          <span class="hand-status">
+            ${value ? "Notiz vorhanden" : "Noch keine Handnotiz"}
+          </span>
+        `;
+      } else {
+        control = `
+          <input
+            name="${name}"
+            type="${input}"
+            value="${value}"
+            ${required}
+          >
+        `;
+      }
+
+      return `
+        <div class="field ${
+          input === "textarea" || input === "hand" ? "full" : ""
+        }">
+          <label>${label}</label>
+          ${control}
+        </div>
+      `;
     })
     .join("");
+
   $("#formDialog").showModal();
 }
-function saveForm(type, values) {
-  const idPrefix = {
-    customer: "K",
-    activity: "A",
-    appointment: "T",
-    followup: "W",
-  }[type];
-  values.id = `${idPrefix}-${Date.now()}`;
+
+function saveForm(type, values, options = {}) {
+  const mode = options.mode || "create";
+  const recordId = options.recordId || "";
+
   if (type === "customer") {
-    values.trades = (values.trades || "")
-      .split(",")
-      .map((x) => x.trim())
-      .filter(Boolean);
-    values.lastContact = "";
-    values.nextAppointment = "";
-    data.customers.push(values);
+    saveCustomer(values, mode, recordId);
   }
+
   if (type === "activity") {
-    data.activities.push(values);
-    const c = customerById(values.customerId);
-    if (c) {
-      c.lastContact = values.date;
-      if (values.result === "Termin vereinbart")
-        c.pipeline = "04 Termin vereinbart";
-      if (values.result === "Bedarf erkannt")
-        c.pipeline = "05 Bedarf qualifiziert";
-      if (values.result === "Angebot erstellt") c.pipeline = "06 Angebot";
-      if (values.result === "Auftrag erhalten") c.pipeline = "08 Gewonnen";
-    }
-    if (values.next && values.due)
-      data.followups.push({
-        id: `W-${Date.now() + 1}`,
-        customerId: values.customerId,
-        owner: values.owner,
-        due: values.due,
-        priority: "Mittel",
-        task: values.next,
-        status: "Offen",
-      });
+    saveActivity(values);
   }
+
   if (type === "appointment") {
-    data.appointments.push(values);
-    const c = customerById(values.customerId);
-    if (c) c.nextAppointment = values.date;
+    saveAppointment(values);
   }
-  if (type === "followup") data.followups.push(values);
+
+  if (type === "followup") {
+    saveFollowup(values);
+  }
+
   saveData();
-  toast("Eintrag wurde gespeichert.");
+
+  toast(
+    mode === "edit"
+      ? "Die Änderungen wurden gespeichert."
+      : "Der Eintrag wurde gespeichert.",
+  );
+}
+
+function saveCustomer(values, mode, recordId) {
+  values.trades = (values.trades || "")
+    .split(",")
+    .map((trade) => trade.trim())
+    .filter(Boolean);
+
+  if (mode === "edit") {
+    const customer = customerById(recordId);
+
+    if (!customer) {
+      toast("Der Kunde wurde nicht gefunden.");
+      return;
+    }
+
+    Object.assign(customer, values);
+    currentCustomerId = customer.id;
+    return;
+  }
+
+  values.id = `K-${Date.now()}`;
+  values.lastContact = "";
+  values.nextAppointment = "";
+
+  data.customers.push(values);
+  currentCustomerId = values.id;
+}
+
+function saveActivity(values) {
+  values.id = `A-${Date.now()}`;
+  data.activities.push(values);
+
+  const customer = customerById(values.customerId);
+
+  if (customer) {
+    customer.lastContact = values.date;
+
+    if (values.result === "Termin vereinbart") {
+      customer.pipeline = "04 Termin vereinbart";
+    }
+
+    if (values.result === "Bedarf erkannt") {
+      customer.pipeline = "05 Bedarf qualifiziert";
+    }
+
+    if (values.result === "Angebot erstellt") {
+      customer.pipeline = "06 Angebot";
+    }
+
+    if (values.result === "Auftrag erhalten") {
+      customer.pipeline = "08 Gewonnen";
+    }
+  }
+
+  if (values.next && values.due) {
+    data.followups.push({
+      id: `W-${Date.now() + 1}`,
+      customerId: values.customerId,
+      owner: values.owner,
+      due: values.due,
+      priority: "Mittel",
+      task: values.next,
+      status: "Offen",
+    });
+  }
+}
+
+function saveAppointment(values) {
+  values.id = `T-${Date.now()}`;
+  data.appointments.push(values);
+
+  const customer = customerById(values.customerId);
+
+  if (customer) {
+    customer.nextAppointment = values.date;
+  }
+}
+
+function saveFollowup(values) {
+  values.id = `W-${Date.now()}`;
+  data.followups.push(values);
 }
