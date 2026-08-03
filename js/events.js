@@ -314,11 +314,34 @@ function bindImportEvents() {
   const nextAnimationFrame = () =>
     new Promise((resolve) => requestAnimationFrame(resolve));
 
+  const waitForBrowserIdle = () =>
+    new Promise((resolve) => {
+      if ("requestIdleCallback" in window) {
+        window.requestIdleCallback(resolve, { timeout: 2500 });
+        return;
+      }
+
+      setTimeout(resolve, 50);
+    });
+
+  const finishImportRendering = async () => {
+    /*
+     * Zwei Zeichenzyklen und anschließend eine Leerlaufphase abwarten.
+     * Damit bleibt die Fortschrittsanzeige sichtbar, bis Edge die große
+     * Tabelle tatsächlich neu berechnet und gezeichnet hat.
+     */
+    await nextAnimationFrame();
+    await nextAnimationFrame();
+    await waitForBrowserIdle();
+    await nextAnimationFrame();
+  };
+
   const updateAllImportSelections = async (shouldSelect) => {
     const rows = pendingImport.filter((row) => row.importable);
     const checkboxes = [
       ...document.querySelectorAll(".import-row-checkbox:not(:disabled)"),
     ];
+    const tableBody = $("#importPreview tbody");
 
     if (!rows.length) {
       updateImportSelection();
@@ -326,7 +349,7 @@ function bindImportEvents() {
     }
 
     const actionText = shouldSelect ? "ausgewählt" : "abgewählt";
-    const chunkSize = 125;
+    const chunkSize = 200;
 
     setImportBusy(
       true,
@@ -334,52 +357,87 @@ function bindImportEvents() {
       0,
     );
 
-    /*
-     * Erst einen Browser-Zeichenzyklus abwarten, damit die Fortschrittsanzeige
-     * sichtbar wird, bevor die große Auswahl verarbeitet wird.
-     */
     await nextAnimationFrame();
 
-    for (let start = 0; start < rows.length; start += chunkSize) {
-      const end = Math.min(start + chunkSize, rows.length);
+    /*
+     * Die sehr große Tabelle wird während der Massenänderung unsichtbar
+     * geschaltet. Dadurch muss der Browser nicht nach jedem Block Tausende
+     * Tabellenzellen neu zeichnen.
+     */
+    if (tableBody) {
+      tableBody.style.visibility = "hidden";
+    }
 
-      for (let index = start; index < end; index += 1) {
-        rows[index].selected = shouldSelect;
+    try {
+      for (let start = 0; start < rows.length; start += chunkSize) {
+        const end = Math.min(start + chunkSize, rows.length);
 
-        const checkbox = checkboxes[index];
+        for (let index = start; index < end; index += 1) {
+          rows[index].selected = shouldSelect;
 
-        if (checkbox) {
-          checkbox.checked = shouldSelect;
+          const checkbox = checkboxes[index];
+
+          if (checkbox) {
+            checkbox.checked = shouldSelect;
+          }
         }
-      }
 
-      const progress = (end / rows.length) * 100;
+        /*
+         * Die Auswahl selbst belegt 90 Prozent. Die letzten 10 Prozent
+         * stehen sichtbar für Zusammenfassung, Layout und Neuzeichnung.
+         */
+        const progress = (end / rows.length) * 90;
+
+        setImportBusy(
+          true,
+          `${end.toLocaleString("de-DE")} von ${rows.length.toLocaleString(
+            "de-DE",
+          )} Datensätzen ${actionText}`,
+          progress,
+        );
+
+        await nextAnimationFrame();
+      }
 
       setImportBusy(
         true,
-        `${end.toLocaleString("de-DE")} von ${rows.length.toLocaleString(
-          "de-DE",
-        )} Datensätzen ${actionText}`,
-        progress,
+        "Auswahl wird ausgewertet …",
+        92,
       );
 
+      updateImportSelection();
+
+      setImportBusy(
+        true,
+        "Vorschau wird aktualisiert …",
+        96,
+      );
+
+      if (tableBody) {
+        tableBody.style.visibility = "";
+      }
+
       /*
-       * Die Arbeit wird über mehrere Frames verteilt. Dadurch bleibt die
-       * Oberfläche auch bei mehreren Tausend Datensätzen sichtbar und reagiert.
+       * Erst schließen, wenn Edge die Tabellenansicht wirklich verarbeitet
+       * und gezeichnet hat. So entsteht keine scheinbar fertige Oberfläche,
+       * die anschließend noch mehrere Sekunden blockiert.
        */
-      await nextAnimationFrame();
+      await finishImportRendering();
+
+      setImportBusy(
+        true,
+        `${rows.length.toLocaleString("de-DE")} Datensätze wurden ${actionText}.`,
+        100,
+      );
+
+      await new Promise((resolve) => setTimeout(resolve, 250));
+    } finally {
+      if (tableBody) {
+        tableBody.style.visibility = "";
+      }
+
+      setImportBusy(false);
     }
-
-    updateImportSelection();
-
-    setImportBusy(
-      true,
-      `${rows.length.toLocaleString("de-DE")} Datensätze wurden ${actionText}.`,
-      100,
-    );
-
-    await new Promise((resolve) => setTimeout(resolve, 300));
-    setImportBusy(false);
   };
 
   const bindImportSelectionEvents = () => {
