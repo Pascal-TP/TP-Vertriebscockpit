@@ -116,6 +116,9 @@
           <button class="nav-button" data-view="history">
             <span>≡</span> Historie
           </button>
+          <button class="nav-button" data-view="export">
+            <span>⇩</span> CSV-Export
+          </button>
           <button class="nav-button" data-view="import">
             <span>⇧</span> CSV-Import
           </button>
@@ -409,6 +412,7 @@
                   <option value="appointment">Termin</option>
                   <option value="followup">Wiedervorlage</option>
                   <option value="employee">Außendienstmitarbeiter</option>
+                  <option value="export">CSV-Export</option>
                 </select></label
               >
               <label
@@ -422,6 +426,7 @@
                   <option value="completed">Erledigt</option>
                   <option value="reopened">Wieder geöffnet</option>
                   <option value="imported">Importiert</option>
+                  <option value="exported">Exportiert</option>
                   <option value="system-updated">
                     Automatisch aktualisiert
                   </option>
@@ -506,6 +511,149 @@
                 Nur Administratoren können archivierte Kunden endgültig löschen
                 und Außendienstmitarbeiter verwalten.
               </p>
+            </article>
+          </div>
+        </section>
+
+
+        <section class="view" id="view-export">
+          <div class="toolbar card">
+            <div>
+              <h2>CSV-Export</h2>
+              <p>
+                Kundenstämme, Termine und Kontakte als Excel-kompatible CSV-Dateien herunterladen.
+              </p>
+            </div>
+          </div>
+
+          <div class="export-grid">
+            <article class="card export-card">
+              <div class="export-card-heading">
+                <div class="export-icon">K</div>
+                <div>
+                  <h2>Kundendatenbanken</h2>
+                  <p>Aktive Kunden getrennt nach Kundengruppe exportieren.</p>
+                </div>
+              </div>
+
+              <div class="export-stat-row">
+                <span>Bestandskunden <strong id="exportCountExisting">0</strong></span>
+                <span>Interessenten <strong id="exportCountProspects">0</strong></span>
+                <span>Kaltakquise <strong id="exportCountCold">0</strong></span>
+                <span>Archiviert <strong id="exportCountArchived">0</strong></span>
+              </div>
+
+              <div class="export-button-grid">
+                <button class="primary-button" id="exportExistingCustomers" type="button">
+                  Bestandskunden herunterladen
+                </button>
+                <button class="primary-button" id="exportProspectCustomers" type="button">
+                  Interessenten herunterladen
+                </button>
+                <button class="primary-button" id="exportColdCustomers" type="button">
+                  Kaltakquise herunterladen
+                </button>
+                <button class="secondary-button" id="exportArchivedCustomers" type="button">
+                  Archivierte Kunden herunterladen
+                </button>
+              </div>
+
+              <p class="export-hint">
+                Die vier Exporte verändern keine Daten. Archivierte Kunden sind nur im eigenen Download enthalten.
+              </p>
+            </article>
+
+            <article class="card export-card">
+              <div class="export-card-heading">
+                <div class="export-icon">T</div>
+                <div>
+                  <h2>Terminliste</h2>
+                  <p>Termine mit Kundenanschrift, Ansprechpartner und Bearbeitungsinformationen.</p>
+                </div>
+              </div>
+
+              <div class="export-filter-grid">
+                <label>
+                  Zeitraum
+                  <select id="appointmentExportPeriod">
+                    <option value="all">Alle Termine</option>
+                    <option value="future">Ab heute</option>
+                    <option value="week">Aktuelle Woche</option>
+                    <option value="month">Aktueller Monat</option>
+                    <option value="custom">Freier Zeitraum</option>
+                  </select>
+                </label>
+
+                <label>
+                  Außendienst
+                  <select id="appointmentExportOwner">
+                    <option value="all">Alle Außendienstmitarbeiter</option>
+                  </select>
+                </label>
+
+                <label class="export-custom-date hidden" data-export-dates="appointments">
+                  Von
+                  <input type="date" id="appointmentExportFrom">
+                </label>
+
+                <label class="export-custom-date hidden" data-export-dates="appointments">
+                  Bis
+                  <input type="date" id="appointmentExportTo">
+                </label>
+              </div>
+
+              <div class="export-action-row">
+                <span id="appointmentExportCount">0 Termine entsprechen dem Filter</span>
+                <button class="primary-button" id="exportAppointmentsButton" type="button">
+                  Terminliste herunterladen
+                </button>
+              </div>
+            </article>
+
+            <article class="card export-card">
+              <div class="export-card-heading">
+                <div class="export-icon">A</div>
+                <div>
+                  <h2>Kontakt- und Aktivitätenliste</h2>
+                  <p>Telefonate, E-Mails, Besuche und weitere Vertriebsaktivitäten vollständig exportieren.</p>
+                </div>
+              </div>
+
+              <div class="export-filter-grid">
+                <label>
+                  Zeitraum
+                  <select id="activityExportPeriod">
+                    <option value="all">Alle Kontakte</option>
+                    <option value="week">Aktuelle Woche</option>
+                    <option value="month">Aktueller Monat</option>
+                    <option value="custom">Freier Zeitraum</option>
+                  </select>
+                </label>
+
+                <label>
+                  Außendienst
+                  <select id="activityExportOwner">
+                    <option value="all">Alle Außendienstmitarbeiter</option>
+                  </select>
+                </label>
+
+                <label class="export-custom-date hidden" data-export-dates="activities">
+                  Von
+                  <input type="date" id="activityExportFrom">
+                </label>
+
+                <label class="export-custom-date hidden" data-export-dates="activities">
+                  Bis
+                  <input type="date" id="activityExportTo">
+                </label>
+              </div>
+
+              <div class="export-action-row">
+                <span id="activityExportCount">0 Kontakte entsprechen dem Filter</span>
+                <button class="primary-button" id="exportActivitiesButton" type="button">
+                  Kontaktliste herunterladen
+                </button>
+              </div>
             </article>
           </div>
         </section>
@@ -766,6 +914,7 @@
     <script src="js/admin.js"></script>
     <script src="js/maps.js"></script>
     <script src="js/import.js"></script>
+    <script src="js/export.js"></script>
     <script src="js/canvas.js"></script>
     <script src="js/events.js"></script>
     <script src="js/app.js"></script>

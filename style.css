@@ -2310,3 +2310,146 @@ body.import-busy * {
 body.import-busy {
   overflow: hidden;
 }
+
+
+/* ==========================
+   CSV-Export
+========================== */
+
+.export-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.export-card {
+    padding: 20px;
+}
+
+.export-card-heading {
+    display: flex;
+    align-items: flex-start;
+    gap: 13px;
+    margin-bottom: 18px;
+}
+
+.export-card-heading h2,
+.export-card-heading p {
+    margin: 0;
+}
+
+.export-card-heading p {
+    margin-top: 4px;
+    color: var(--muted);
+    font-size: .82rem;
+}
+
+.export-icon {
+    width: 40px;
+    height: 40px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 40px;
+    border-radius: 11px;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-weight: 900;
+}
+
+.export-stat-row {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-bottom: 16px;
+}
+
+.export-stat-row span {
+    padding: 8px 10px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #f8fafb;
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.export-stat-row strong {
+    color: var(--text);
+    margin-left: 4px;
+}
+
+.export-button-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(180px, 1fr));
+    gap: 10px;
+}
+
+.export-hint {
+    margin: 14px 0 0;
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.export-filter-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(160px, 1fr));
+    gap: 12px;
+}
+
+.export-filter-grid label {
+    display: grid;
+    gap: 6px;
+    color: var(--muted);
+    font-size: .72rem;
+    font-weight: 700;
+}
+
+.export-filter-grid input,
+.export-filter-grid select {
+    width: 100%;
+    min-height: 42px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    padding: 9px 10px;
+    background: #fff;
+    color: var(--text);
+}
+
+.export-action-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid var(--line);
+}
+
+.export-action-row span {
+    color: var(--muted);
+    font-size: .78rem;
+}
+
+@media (max-width: 1150px) {
+    .export-button-grid {
+        grid-template-columns: repeat(2, minmax(180px, 1fr));
+    }
+
+    .export-filter-grid {
+        grid-template-columns: repeat(2, minmax(160px, 1fr));
+    }
+}
+
+@media (max-width: 650px) {
+    .export-button-grid,
+    .export-filter-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .export-action-row {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .export-action-row .primary-button {
+        width: 100%;
+    }
+}
