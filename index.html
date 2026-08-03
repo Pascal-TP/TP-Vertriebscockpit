@@ -413,6 +413,7 @@
                   <option value="followup">Wiedervorlage</option>
                   <option value="employee">Außendienstmitarbeiter</option>
                   <option value="export">CSV-Export</option>
+                  <option value="backup">Datensicherung</option>
                 </select></label
               >
               <label
@@ -427,6 +428,8 @@
                   <option value="reopened">Wieder geöffnet</option>
                   <option value="imported">Importiert</option>
                   <option value="exported">Exportiert</option>
+                  <option value="backup-created">Backup erstellt</option>
+                  <option value="backup-restored">Backup wiederhergestellt</option>
                   <option value="system-updated">
                     Automatisch aktualisiert
                   </option>
@@ -488,6 +491,67 @@
                 <strong id="employeeCount">0 Außendienstmitarbeiter</strong>
               </div>
               <div class="admin-employee-list" id="employeeAdminList"></div>
+            </article>
+
+            <article class="card admin-backup-card">
+              <div class="card-heading">
+                <div>
+                  <h2>Datensicherung</h2>
+                  <p>
+                    Vollständige CRM-Sicherung als JSON-Datei auf einem eigenen
+                    Laufwerk oder Speichermedium speichern.
+                  </p>
+                </div>
+              </div>
+
+              <div class="backup-summary-grid">
+                <div>
+                  <small>Kunden</small>
+                  <strong id="backupCustomerCount">0</strong>
+                </div>
+                <div>
+                  <small>Aktivitäten</small>
+                  <strong id="backupActivityCount">0</strong>
+                </div>
+                <div>
+                  <small>Termine</small>
+                  <strong id="backupAppointmentCount">0</strong>
+                </div>
+                <div>
+                  <small>Wiedervorlagen</small>
+                  <strong id="backupFollowupCount">0</strong>
+                </div>
+                <div>
+                  <small>Außendienst</small>
+                  <strong id="backupEmployeeCount">0</strong>
+                </div>
+                <div>
+                  <small>Historie</small>
+                  <strong id="backupHistoryCount">–</strong>
+                </div>
+              </div>
+
+              <div class="backup-actions">
+                <button class="primary-button" id="createBackupButton" type="button">
+                  JSON-Backup erstellen
+                </button>
+
+                <button class="secondary-button" id="chooseRestoreFileButton" type="button">
+                  Backup wiederherstellen
+                </button>
+
+                <input
+                  class="hidden"
+                  id="restoreBackupFile"
+                  type="file"
+                  accept=".json,application/json"
+                >
+              </div>
+
+              <p class="admin-warning">
+                Die Backup-Datei wird ausschließlich auf dem von Ihnen gewählten
+                Gerät gespeichert. Es erfolgt keine Ablage in Firebase Storage.
+              </p>
             </article>
 
             <article class="card admin-info-card">
@@ -899,7 +963,62 @@
       </div>
     </div>
 
-    <div class="toast" id="toast"></div>
+  
+  <dialog id="restoreBackupDialog" class="backup-dialog">
+    <div class="dialog-header">
+      <div>
+        <h2>JSON-Backup wiederherstellen</h2>
+        <p>Bitte prüfen Sie die Sicherungsdatei vor der Wiederherstellung.</p>
+      </div>
+      <button class="icon-button" id="closeRestoreBackupDialog" type="button" aria-label="Schließen">×</button>
+    </div>
+
+    <div class="dialog-body">
+      <div class="backup-file-summary" id="backupFileSummary"></div>
+
+      <div class="backup-warning-box">
+        <strong>Achtung</strong>
+        <p>
+          Kunden, Aktivitäten, Termine, Wiedervorlagen und Außendienstmitarbeiter
+          werden durch den Inhalt der Sicherung ersetzt.
+        </p>
+        <p>
+          Die bestehende CRM-Historie wird aus Sicherheitsgründen nicht gelöscht.
+          Die Wiederherstellung wird dort zusätzlich protokolliert.
+        </p>
+      </div>
+
+      <label class="backup-confirm-label">
+        Zur Bestätigung bitte <strong>WIEDERHERSTELLEN</strong> eingeben:
+        <input
+          id="restoreConfirmation"
+          type="text"
+          autocomplete="off"
+          placeholder="WIEDERHERSTELLEN"
+        >
+      </label>
+    </div>
+
+    <div class="dialog-footer">
+      <button class="secondary-button" id="cancelRestoreBackupButton" type="button">
+        Abbrechen
+      </button>
+      <button class="danger-button" id="confirmRestoreBackupButton" type="button" disabled>
+        Datenbank ersetzen
+      </button>
+    </div>
+  </dialog>
+
+  <div class="backup-progress-overlay hidden" id="backupProgressOverlay" aria-live="polite">
+    <div class="backup-progress-card">
+      <div class="loading-spinner" aria-hidden="true"></div>
+      <strong id="backupProgressTitle">Datensicherung wird verarbeitet …</strong>
+      <progress id="backupProgressBar" max="100" value="0"></progress>
+      <span id="backupProgressText">Bitte warten.</span>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
     <script src="js/config.js"></script>
     <script src="js/state.js"></script>
     <script src="js/navigation.js"></script>
@@ -911,6 +1030,7 @@
     <script src="js/duplicates.js"></script>
     <script src="js/history.js"></script>
     <script src="js/forms.js"></script>
+    <script src="js/backup.js"></script>
     <script src="js/admin.js"></script>
     <script src="js/maps.js"></script>
     <script src="js/import.js"></script>
