@@ -9,6 +9,7 @@ const historyEntityLabels = {
   appointment: "Termin",
   followup: "Wiedervorlage",
   employee: "Außendienstmitarbeiter",
+  export: "CSV-Export",
 };
 
 const historyActionLabels = {
@@ -24,12 +25,17 @@ const historyActionLabels = {
   "system-updated": "Automatisch aktualisiert",
   deactivated: "Deaktiviert",
   "permanently-deleted": "Endgültig gelöscht",
+  exported: "Exportiert",
 };
 
 function customerNameForHistory(entry) {
   const id =
     entry.customerId ||
     (entry.entityType === "customer" ? entry.entityId : "");
+
+  if (entry.entityType === "export") {
+    return entry.snapshot?.exportType || "CSV-Export";
+  }
 
   return customerById(id)?.name ||
     entry.snapshot?.name ||

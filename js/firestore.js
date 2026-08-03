@@ -921,6 +921,25 @@ function subscribeGlobalHistory(callback, errorCallback) {
   return unsubscribeHistory;
 }
 
+
+async function logExportHistory({ exportType, count, filters = {} }) {
+  const batch = writeBatch(crmDb);
+
+  addHistory(batch, {
+    entityType: "export",
+    entityId: `EXPORT-${Date.now()}`,
+    action: "exported",
+    summary: `${exportType} mit ${count} Datensätzen als CSV exportiert`,
+    snapshot: {
+      exportType,
+      count,
+      filters,
+    },
+  });
+
+  await batch.commit();
+}
+
 window.crmFirestore = {
   createCustomer,
   updateCustomer,
@@ -942,6 +961,7 @@ window.crmFirestore = {
   createEmployee,
   updateEmployee,
   permanentlyDeleteCustomer,
+  logExportHistory,
 };
 
 export { startAllDataSync, loadCurrentUserProfile };

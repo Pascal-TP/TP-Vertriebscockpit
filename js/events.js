@@ -10,6 +10,7 @@ function bindEvents() {
   bindFormEvents();
   bindSearchEvents();
   bindImportEvents();
+  bindExportEvents();
   bindAdminEvents();
 }
 

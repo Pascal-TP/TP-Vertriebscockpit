@@ -36,6 +36,11 @@ const viewMeta = {
     "Außendienstmitarbeiter und administrative Funktionen verwalten",
     "Nur für Administratoren",
   ],
+  export: [
+    "CSV-Export",
+    "Kunden, Termine und Kontakte als CSV-Dateien herunterladen",
+    "Datenexport für Excel und weitere Auswertungen",
+  ],
   import: [
     "CSV-Import",
     "Bestehende Kundenlisten strukturiert übernehmen",
@@ -62,6 +67,7 @@ function showView(name) {
   $("#sidebar").classList.remove("open");
   if (name === "history" && typeof renderGlobalHistory === "function") renderGlobalHistory();
   if (name === "admin" && typeof renderAdmin === "function") renderAdmin();
+  if (name === "export" && typeof renderExportView === "function") renderExportView();
 }
 
 function fillOwnerSelects() {
