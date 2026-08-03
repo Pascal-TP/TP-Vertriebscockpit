@@ -281,20 +281,114 @@ function bindImportEvents() {
     }
   };
 
+  const setImportBusy = (isBusy, message = "", progress = 0) => {
+    const overlay = $("#importProgressOverlay");
+    const progressBar = $("#importProgressBar");
+    const progressText = $("#importProgressText");
+    const progressPercent = $("#importProgressPercent");
+
+    if (!overlay) return;
+
+    overlay.classList.toggle("hidden", !isBusy);
+    overlay.setAttribute("aria-hidden", String(!isBusy));
+
+    if (progressBar) {
+      progressBar.value = Math.max(0, Math.min(100, progress));
+    }
+
+    if (progressText) {
+      progressText.textContent = message;
+    }
+
+    if (progressPercent) {
+      progressPercent.textContent = `${Math.round(progress)} %`;
+    }
+
+    $("#confirmImportButton").disabled = isBusy;
+    $("#importButton").disabled = isBusy || !$("#csvFile").files[0];
+    $("#csvFile").disabled = isBusy;
+    $("#importType").disabled = isBusy;
+  };
+
+  const nextAnimationFrame = () =>
+    new Promise((resolve) => requestAnimationFrame(resolve));
+
+  const updateAllImportSelections = async (shouldSelect) => {
+    const rows = pendingImport.filter((row) => row.importable);
+    const checkboxes = [
+      ...document.querySelectorAll(".import-row-checkbox:not(:disabled)"),
+    ];
+
+    if (!rows.length) {
+      updateImportSelection();
+      return;
+    }
+
+    const actionText = shouldSelect ? "ausgewählt" : "abgewählt";
+    const chunkSize = 125;
+
+    setImportBusy(
+      true,
+      `Datensätze werden ${actionText} …`,
+      0,
+    );
+
+    /*
+     * Erst einen Browser-Zeichenzyklus abwarten, damit die Fortschrittsanzeige
+     * sichtbar wird, bevor die große Auswahl verarbeitet wird.
+     */
+    await nextAnimationFrame();
+
+    for (let start = 0; start < rows.length; start += chunkSize) {
+      const end = Math.min(start + chunkSize, rows.length);
+
+      for (let index = start; index < end; index += 1) {
+        rows[index].selected = shouldSelect;
+
+        const checkbox = checkboxes[index];
+
+        if (checkbox) {
+          checkbox.checked = shouldSelect;
+        }
+      }
+
+      const progress = (end / rows.length) * 100;
+
+      setImportBusy(
+        true,
+        `${end.toLocaleString("de-DE")} von ${rows.length.toLocaleString(
+          "de-DE",
+        )} Datensätzen ${actionText}`,
+        progress,
+      );
+
+      /*
+       * Die Arbeit wird über mehrere Frames verteilt. Dadurch bleibt die
+       * Oberfläche auch bei mehreren Tausend Datensätzen sichtbar und reagiert.
+       */
+      await nextAnimationFrame();
+    }
+
+    updateImportSelection();
+
+    setImportBusy(
+      true,
+      `${rows.length.toLocaleString("de-DE")} Datensätze wurden ${actionText}.`,
+      100,
+    );
+
+    await new Promise((resolve) => setTimeout(resolve, 300));
+    setImportBusy(false);
+  };
+
   const bindImportSelectionEvents = () => {
     const selectAll = $("#selectAllImportRows");
 
     if (selectAll) {
-      selectAll.onchange = () => {
-        pendingImport.forEach((row) => {
-          if (row.importable) row.selected = selectAll.checked;
-        });
+      selectAll.onchange = async () => {
+        const shouldSelect = selectAll.checked;
 
-        $$(".import-row-checkbox:not(:disabled)").forEach((checkbox) => {
-          checkbox.checked = selectAll.checked;
-        });
-
-        updateImportSelection();
+        await updateAllImportSelections(shouldSelect);
       };
     }
 
