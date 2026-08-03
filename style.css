@@ -2187,3 +2187,43 @@ textarea {
 .import-status.fehlerhaft {
   background: #f4d7d7;
 }
+
+
+/* CSV-Import: zeilenweise Auswahl */
+.import-select-column {
+  width: 82px;
+  min-width: 82px;
+  text-align: center;
+}
+
+.import-checkbox-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.import-checkbox-label input,
+.import-row-checkbox {
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  accent-color: var(--blue);
+  cursor: pointer;
+}
+
+.import-row-checkbox:disabled {
+  cursor: not-allowed;
+  opacity: .45;
+}
+
+.import-row.importable:has(.import-row-checkbox:not(:checked)) {
+  background: #fafafa;
+  opacity: .72;
+}
+
+.import-row.importable:has(.import-row-checkbox:checked) {
+  background: #f3fbf6;
+}
