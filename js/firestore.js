@@ -898,6 +898,186 @@ function startAllDataSync() {
   return syncPromise;
 }
 
+
+async function loadAllHistoryForBackup() {
+  requireAdmin();
+
+  const snapshot = await getDocs(historyCollection);
+
+  return snapshot.docs
+    .map(normalizeHistory)
+    .sort((a, b) =>
+      String(a.changedAt || "").localeCompare(String(b.changedAt || "")),
+    );
+}
+
+async function logBackupHistory({
+  action,
+  summary,
+  snapshot = {},
+}) {
+  requireAdmin();
+
+  const batch = writeBatch(crmDb);
+
+  addHistory(batch, {
+    entityType: "backup",
+    entityId: `BACKUP-${Date.now()}`,
+    action,
+    summary,
+    snapshot,
+  });
+
+  await batch.commit();
+}
+
+function cleanBackupRecord(record) {
+  const clean = { ...record };
+  delete clean.id;
+  return clean;
+}
+
+async function commitBackupOperations(operations, progressCallback) {
+  const chunkSize = 350;
+  const total = operations.length;
+  let completed = 0;
+
+  for (let start = 0; start < operations.length; start += chunkSize) {
+    const chunk = operations.slice(start, start + chunkSize);
+    const batch = writeBatch(crmDb);
+
+    chunk.forEach((operation) => {
+      const ref = doc(crmDb, operation.collectionName, operation.id);
+
+      if (operation.type === "delete") {
+        batch.delete(ref);
+      } else {
+        batch.set(ref, operation.data, { merge: false });
+      }
+    });
+
+    await batch.commit();
+    completed += chunk.length;
+
+    progressCallback?.({
+      completed,
+      total,
+    });
+  }
+}
+
+async function restoreOperationalBackup(backupData, progressCallback) {
+  requireAdmin();
+
+  const collectionNames = [
+    "customers",
+    "activities",
+    "appointments",
+    "followups",
+    "employees",
+  ];
+
+  const currentSnapshots = {};
+
+  progressCallback?.({
+    stage: "Aktuelle Daten werden geprüft",
+    completed: 0,
+    total: collectionNames.length,
+    percent: 2,
+  });
+
+  for (let index = 0; index < collectionNames.length; index += 1) {
+    const collectionName = collectionNames[index];
+    currentSnapshots[collectionName] = await getDocs(
+      collection(crmDb, collectionName),
+    );
+
+    progressCallback?.({
+      stage: "Aktuelle Daten werden geprüft",
+      completed: index + 1,
+      total: collectionNames.length,
+      percent: 2 + ((index + 1) / collectionNames.length) * 8,
+    });
+  }
+
+  const deleteOperations = collectionNames.flatMap((collectionName) =>
+    currentSnapshots[collectionName].docs.map((snapshot) => ({
+      type: "delete",
+      collectionName,
+      id: snapshot.id,
+    })),
+  );
+
+  const writeOperations = collectionNames.flatMap((collectionName) =>
+    (backupData[collectionName] || []).map((record) => ({
+      type: "set",
+      collectionName,
+      id: String(record.id),
+      data: cleanBackupRecord(record),
+    })),
+  );
+
+  const totalOperations =
+    deleteOperations.length + writeOperations.length || 1;
+
+  await commitBackupOperations(
+    deleteOperations,
+    ({ completed }) => {
+      progressCallback?.({
+        stage: "Bestehende CRM-Daten werden entfernt",
+        completed,
+        total: deleteOperations.length || 1,
+        percent: 10 + (completed / totalOperations) * 40,
+      });
+    },
+  );
+
+  await commitBackupOperations(
+    writeOperations,
+    ({ completed }) => {
+      progressCallback?.({
+        stage: "Sicherungsdaten werden eingespielt",
+        completed,
+        total: writeOperations.length || 1,
+        percent:
+          50 +
+          (completed / Math.max(writeOperations.length, 1)) * 45,
+      });
+    },
+  );
+
+  await logBackupHistory({
+    action: "backup-restored",
+    summary:
+      `JSON-Backup wiederhergestellt: ` +
+      `${backupData.customers?.length || 0} Kunden, ` +
+      `${backupData.activities?.length || 0} Aktivitäten, ` +
+      `${backupData.appointments?.length || 0} Termine, ` +
+      `${backupData.followups?.length || 0} Wiedervorlagen und ` +
+      `${backupData.employees?.length || 0} Außendienstmitarbeiter`,
+    snapshot: {
+      counts: {
+        customers: backupData.customers?.length || 0,
+        activities: backupData.activities?.length || 0,
+        appointments: backupData.appointments?.length || 0,
+        followups: backupData.followups?.length || 0,
+        employees: backupData.employees?.length || 0,
+        historyContainedInFile: backupData.history?.length || 0,
+      },
+      historyRestored: false,
+      note:
+        "Die bestehende Historie wurde nicht gelöscht. Die im Backup enthaltene Historie bleibt in der Sicherungsdatei erhalten.",
+    },
+  });
+
+  progressCallback?.({
+    stage: "Wiederherstellung wird abgeschlossen",
+    completed: totalOperations,
+    total: totalOperations,
+    percent: 100,
+  });
+}
+
 function subscribeGlobalHistory(callback, errorCallback) {
   if (unsubscribeHistory) {
     unsubscribeHistory();
@@ -962,6 +1142,9 @@ window.crmFirestore = {
   updateEmployee,
   permanentlyDeleteCustomer,
   logExportHistory,
+  loadAllHistoryForBackup,
+  logBackupHistory,
+  restoreOperationalBackup,
 };
 
 export { startAllDataSync, loadCurrentUserProfile };

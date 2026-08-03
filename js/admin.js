@@ -27,6 +27,8 @@ function applyRoleToUi() {
 function renderAdmin() {
   if (!isAdmin()) return;
 
+  if (typeof renderBackupAdmin === "function") renderBackupAdmin();
+
   const list = $("#employeeAdminList");
   const count = $("#employeeCount");
   if (!list || !count) return;
@@ -123,6 +125,7 @@ function bindAdminEvents() {
   $("#closeEmployeeDialog")?.addEventListener("click", () => $("#employeeDialog").close());
   $("#cancelEmployeeButton")?.addEventListener("click", () => $("#employeeDialog").close());
   $("#employeeForm")?.addEventListener("submit", saveEmployee);
+  if (typeof bindBackupEvents === "function") bindBackupEvents();
 
   $("#employeeAdminList")?.addEventListener("click", (event) => {
     const button = event.target.closest("[data-admin-action='edit-employee']");

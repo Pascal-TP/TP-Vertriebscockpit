@@ -10,6 +10,7 @@ const historyEntityLabels = {
   followup: "Wiedervorlage",
   employee: "Außendienstmitarbeiter",
   export: "CSV-Export",
+  backup: "Datensicherung",
 };
 
 const historyActionLabels = {
@@ -26,6 +27,8 @@ const historyActionLabels = {
   deactivated: "Deaktiviert",
   "permanently-deleted": "Endgültig gelöscht",
   exported: "Exportiert",
+  "backup-created": "Backup erstellt",
+  "backup-restored": "Backup wiederhergestellt",
 };
 
 function customerNameForHistory(entry) {
