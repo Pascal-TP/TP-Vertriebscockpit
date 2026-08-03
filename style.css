@@ -2227,3 +2227,78 @@ textarea {
 .import-row.importable:has(.import-row-checkbox:checked) {
   background: #f3fbf6;
 }
+
+
+/* CSV-Import: Fortschrittsanzeige bei großen Auswahlen */
+.import-preview-wrapper {
+  position: relative;
+}
+
+.import-progress-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  min-height: 220px;
+  padding: 20px;
+  background: rgba(245, 248, 250, .84);
+  backdrop-filter: blur(2px);
+  border-radius: 12px;
+}
+
+.import-progress-overlay.hidden {
+  display: none;
+}
+
+.import-progress-card {
+  width: min(390px, 100%);
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+  padding: 22px;
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 12px 34px rgba(17, 45, 61, .16);
+  text-align: center;
+}
+
+.import-progress-card strong {
+  font-size: .86rem;
+}
+
+.import-progress-card progress {
+  width: 100%;
+  height: 14px;
+  accent-color: var(--blue);
+}
+
+.import-progress-card span {
+  color: var(--muted);
+  font-size: .75rem;
+  font-weight: 700;
+}
+
+.import-progress-spinner {
+  width: 34px;
+  height: 34px;
+  border: 4px solid #dbe6eb;
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: import-progress-spin .8s linear infinite;
+}
+
+@keyframes import-progress-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .import-progress-spinner {
+    animation: none;
+    border-top-color: #dbe6eb;
+    border-right-color: var(--blue);
+  }
+}

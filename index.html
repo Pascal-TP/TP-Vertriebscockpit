@@ -544,11 +544,36 @@
                   <p id="importSummary">Noch keine Datei ausgewählt</p>
                 </div>
               </div>
-              <div class="table-scroll">
-                <table id="importPreview">
-                  <thead></thead>
-                  <tbody></tbody>
-                </table>
+              <div class="import-preview-wrapper">
+                <div class="table-scroll">
+                  <table id="importPreview">
+                    <thead></thead>
+                    <tbody></tbody>
+                  </table>
+                </div>
+
+                <div
+                  class="import-progress-overlay hidden"
+                  id="importProgressOverlay"
+                  aria-hidden="true"
+                  aria-live="polite"
+                >
+                  <div class="import-progress-card">
+                    <div class="import-progress-spinner" aria-hidden="true"></div>
+
+                    <strong id="importProgressText">
+                      Auswahl wird verarbeitet …
+                    </strong>
+
+                    <progress
+                      id="importProgressBar"
+                      max="100"
+                      value="0"
+                    ></progress>
+
+                    <span id="importProgressPercent">0 %</span>
+                  </div>
+                </div>
               </div>
               <p class="import-note">
                 Nur Datensätze mit dem Prüfergebnis <strong>Neu</strong> können
