@@ -291,6 +291,7 @@ function bindImportEvents() {
 
     overlay.classList.toggle("hidden", !isBusy);
     overlay.setAttribute("aria-hidden", String(!isBusy));
+    document.body.classList.toggle("import-busy", isBusy);
 
     if (progressBar) {
       progressBar.value = Math.max(0, Math.min(100, progress));
