@@ -237,6 +237,148 @@ function bindSearchEvents() {
 }
 
 function bindImportEvents() {
+  const escapeHtml = (value) =>
+    String(value || "")
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;")
+      .replace(/"/g, "&quot;");
+
+  const selectedImportRows = () =>
+    pendingImport.filter((row) => row.importable && row.selected);
+
+  const updateImportSelection = () => {
+    const importableRows = pendingImport.filter((row) => row.importable);
+    const selectedRows = selectedImportRows();
+    const skippedCount = pendingImport.length - importableRows.length;
+    const counts = pendingImport.reduce((result, row) => {
+      result[row.importStatus] = (result[row.importStatus] || 0) + 1;
+      return result;
+    }, {});
+
+    $("#importSummary").innerHTML =
+      `<strong>${pendingImport.length}</strong> Datensätze geprüft · ` +
+      `<strong>${importableRows.length}</strong> neu · ` +
+      `<strong>${selectedRows.length}</strong> ausgewählt · ` +
+      `<strong>${skippedCount}</strong> nicht übernehmbar` +
+      (Object.keys(counts).length
+        ? `<br><small>${Object.entries(counts)
+            .map(([status, count]) => `${status}: ${count}`)
+            .join(" · ")}</small>`
+        : "");
+
+    const confirmButton = $("#confirmImportButton");
+    confirmButton.textContent = `${selectedRows.length} ausgewählte Datensätze übernehmen`;
+    confirmButton.disabled = selectedRows.length === 0;
+
+    const selectAll = $("#selectAllImportRows");
+    if (selectAll) {
+      selectAll.checked =
+        importableRows.length > 0 && selectedRows.length === importableRows.length;
+      selectAll.indeterminate =
+        selectedRows.length > 0 && selectedRows.length < importableRows.length;
+      selectAll.disabled = importableRows.length === 0;
+    }
+  };
+
+  const bindImportSelectionEvents = () => {
+    const selectAll = $("#selectAllImportRows");
+
+    if (selectAll) {
+      selectAll.onchange = () => {
+        pendingImport.forEach((row) => {
+          if (row.importable) row.selected = selectAll.checked;
+        });
+
+        $$(".import-row-checkbox:not(:disabled)").forEach((checkbox) => {
+          checkbox.checked = selectAll.checked;
+        });
+
+        updateImportSelection();
+      };
+    }
+
+    $$(".import-row-checkbox").forEach((checkbox) => {
+      checkbox.onchange = () => {
+        const row = pendingImport.find(
+          (item) => item.id === checkbox.dataset.importId,
+        );
+
+        if (row?.importable) row.selected = checkbox.checked;
+        updateImportSelection();
+      };
+    });
+  };
+
+  const renderImportPreview = () => {
+    const columns = [
+      "customerNumber",
+      "name",
+      "street",
+      "zip",
+      "city",
+      "contact",
+      "email",
+      "phone",
+      "mobile",
+      "importStatus",
+    ];
+
+    $("#importPreview thead").innerHTML =
+      `<tr>` +
+      `<th class="import-select-column">` +
+      `<label class="import-checkbox-label" title="Alle neuen Datensätze auswählen">` +
+      `<input type="checkbox" id="selectAllImportRows" aria-label="Alle neuen Datensätze auswählen">` +
+      `<span>Alle</span>` +
+      `</label>` +
+      `</th>` +
+      columns
+        .map((column) => `<th>${IMPORT_COLUMN_LABELS[column]}</th>`)
+        .join("") +
+      `</tr>`;
+
+    $("#importPreview tbody").innerHTML = pendingImport
+      .map((row) => {
+        const reason = row.importReasons.length
+          ? ` title="${escapeHtml(row.importReasons.join("; "))}"`
+          : "";
+
+        const checkbox = `
+          <td class="import-select-column">
+            <input
+              class="import-row-checkbox"
+              type="checkbox"
+              data-import-id="${escapeHtml(row.id)}"
+              aria-label="${escapeHtml(row.name)} übernehmen"
+              ${row.importable && row.selected ? "checked" : ""}
+              ${row.importable ? "" : "disabled"}
+            >
+          </td>
+        `;
+
+        return (
+          `<tr class="import-row ${row.importable ? "importable" : "skipped"}">` +
+          checkbox +
+          columns
+            .map((column) => {
+              if (column === "importStatus") {
+                return `<td${reason}><span class="import-status ${importStatusClass(
+                  row[column],
+                )}">${escapeHtml(row[column])}</span></td>`;
+              }
+
+              return `<td>${escapeHtml(row[column])}</td>`;
+            })
+            .join("") +
+          `</tr>`
+        );
+      })
+      .join("");
+
+    bindImportSelectionEvents();
+    updateImportSelection();
+  };
+
   const resetPreview = () => {
     pendingImport = [];
     $("#importPreview thead").innerHTML = "";
@@ -264,60 +406,17 @@ function bindImportEvents() {
     try {
       const text = decodeCSVFile(await file.arrayBuffer());
       const rawRows = parseCSV(text);
-      pendingImport = classifyImportRows(mapImport(rawRows, $("#importType").value));
+      pendingImport = classifyImportRows(
+        mapImport(rawRows, $("#importType").value),
+      );
 
-      const columns = [
-        "customerNumber",
-        "name",
-        "street",
-        "zip",
-        "city",
-        "contact",
-        "email",
-        "phone",
-        "mobile",
-        "importStatus",
-      ];
-
-      $("#importPreview thead").innerHTML =
-        "<tr>" + columns.map((column) => `<th>${IMPORT_COLUMN_LABELS[column]}</th>`).join("") + "</tr>";
-
-      $("#importPreview tbody").innerHTML = pendingImport
-        .map((row) => {
-          const reason = row.importReasons.length ? ` title="${row.importReasons.join("; ").replace(/\"/g, "&quot;")}"` : "";
-          return `<tr class="import-row ${row.importable ? "importable" : "skipped"}">` +
-            columns.map((column) => {
-              if (column === "importStatus") {
-                return `<td${reason}><span class="import-status ${importStatusClass(row[column])}">${row[column]}</span></td>`;
-              }
-              return `<td>${String(row[column] || "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")}</td>`;
-            }).join("") +
-            "</tr>";
-        })
-        .join("");
-
-      const counts = pendingImport.reduce((result, row) => {
-        result[row.importStatus] = (result[row.importStatus] || 0) + 1;
-        return result;
-      }, {});
-      const importableCount = pendingImport.filter((row) => row.importable).length;
-      const skippedCount = pendingImport.length - importableCount;
-
-      $("#importSummary").innerHTML =
-        `<strong>${pendingImport.length}</strong> Datensätze geprüft · ` +
-        `<strong>${importableCount}</strong> neu · ` +
-        `<strong>${skippedCount}</strong> werden nicht übernommen` +
-        (Object.keys(counts).length
-          ? `<br><small>${Object.entries(counts).map(([status, count]) => `${status}: ${count}`).join(" · ")}</small>`
-          : "");
-
-      $("#confirmImportButton").textContent = `${importableCount} neue Datensätze übernehmen`;
-      $("#confirmImportButton").disabled = importableCount === 0;
+      renderImportPreview();
       $("#confirmImportButton").classList.remove("hidden");
     } catch (error) {
       console.error("CSV preview failed:", error);
       resetPreview();
-      $("#importSummary").textContent = "Die Datei konnte nicht gelesen werden.";
+      $("#importSummary").textContent =
+        "Die Datei konnte nicht gelesen werden.";
       toast("Die CSV-Datei konnte nicht verarbeitet werden.");
     } finally {
       button.disabled = false;
@@ -325,42 +424,67 @@ function bindImportEvents() {
   };
 
   $("#confirmImportButton").onclick = async () => {
-    const newCustomers = pendingImport
-      .filter((row) => row.importable)
-      .map(({ sourceRow, importStatus, importReasons, existingCustomerId, importable, ...customer }) => customer);
+    const selectedCustomers = selectedImportRows().map(
+      ({
+        sourceRow,
+        importStatus,
+        importReasons,
+        existingCustomerId,
+        importable,
+        selected,
+        ...customer
+      }) => customer,
+    );
 
-    if (!newCustomers.length) return;
+    if (!selectedCustomers.length) return;
 
     const button = $("#confirmImportButton");
     button.disabled = true;
 
     try {
-      // Unmittelbar vor dem Schreiben erneut prüfen. Damit werden auch Datensätze
-      // berücksichtigt, die seit Erstellung der Vorschau neu angelegt wurden.
-      const finalRows = classifyImportRows(newCustomers.map((customer, index) => ({
-        ...customer,
-        sourceRow: index + 2,
-      })));
+      // Direkt vor dem Schreiben nochmals prüfen. Dadurch werden Kunden,
+      // die zwischen Vorschau und Import angelegt wurden, sicher ausgelassen.
+      const finalRows = classifyImportRows(
+        selectedCustomers.map((customer, index) => ({
+          ...customer,
+          sourceRow: index + 2,
+          selected: true,
+        })),
+      );
+
       const finalCustomers = finalRows
-        .filter((row) => row.importable)
-        .map(({ sourceRow, importStatus, importReasons, existingCustomerId, importable, ...customer }) => customer);
+        .filter((row) => row.importable && row.selected)
+        .map(
+          ({
+            sourceRow,
+            importStatus,
+            importReasons,
+            existingCustomerId,
+            importable,
+            selected,
+            ...customer
+          }) => customer,
+        );
 
       if (!finalCustomers.length) {
-        $("#importSummary").textContent = "Keine neuen Datensätze mehr vorhanden. Bestehende Kunden wurden nicht verändert.";
+        $("#importSummary").textContent =
+          "Keine ausgewählten neuen Datensätze mehr vorhanden. Bestehende Kunden wurden nicht verändert.";
         toast("Es wurden keine bestehenden Kunden überschrieben.");
         return;
       }
 
       await window.crmFirestore.importCustomers(finalCustomers, "imported");
-      const skippedAtCommit = newCustomers.length - finalCustomers.length;
+      const skippedAtCommit = selectedCustomers.length - finalCustomers.length;
       pendingImport = [];
 
       $("#confirmImportButton").classList.add("hidden");
       $("#importSummary").textContent =
-        `${finalCustomers.length} neue Kunden importiert` +
-        (skippedAtCommit ? ` · ${skippedAtCommit} zwischenzeitlich erkannte Dublette(n) ausgelassen` : "");
+        `${finalCustomers.length} ausgewählte Kunden importiert` +
+        (skippedAtCommit
+          ? ` · ${skippedAtCommit} zwischenzeitlich erkannte Dublette(n) ausgelassen`
+          : "");
 
-      toast(`${finalCustomers.length} neue Kundendatensätze wurden ergänzt.`);
+      toast(`${finalCustomers.length} ausgewählte Kundendatensätze wurden ergänzt.`);
       showView("customers");
     } catch (error) {
       console.error("CSV import failed:", error);
@@ -370,3 +494,4 @@ function bindImportEvents() {
     }
   };
 }
+

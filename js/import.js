@@ -1,6 +1,7 @@
 "use strict";
 
 const IMPORT_COLUMN_LABELS = {
+  selected: "Übernehmen",
   customerNumber: "Kundennummer",
   name: "Firma / Kundenname",
   street: "Straße",
@@ -235,6 +236,7 @@ function classifyImportRows(rows) {
       importReasons: [...new Set(reasons)],
       existingCustomerId,
       importable: status === "Neu",
+      selected: row.selected ?? status === "Neu",
     };
   });
 }
