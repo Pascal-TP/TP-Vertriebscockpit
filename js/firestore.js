@@ -425,6 +425,17 @@ async function createActivity(activity, context) {
     "Kundendaten aus einer neuen Aktivität aktualisiert",
   );
 
+  (activity.photos || []).forEach((photo) => {
+    addHistory(batch, {
+      entityType: "activity",
+      entityId: activity.id,
+      customerId: activity.customerId,
+      action: "photo-uploaded",
+      summary: `Foto „${photo.name || "Kontaktfoto"}“ hochgeladen`,
+      snapshot: photo,
+    });
+  });
+
   if (context.followup) {
     addEntityWrite(batch, {
       collectionName: "followups",
@@ -463,6 +474,20 @@ async function updateActivity(before, after, context) {
     changes,
     snapshot: after,
   });
+
+  const oldPhotoPaths = new Set((before.photos || []).map((photo) => photo.path));
+  (after.photos || [])
+    .filter((photo) => !oldPhotoPaths.has(photo.path))
+    .forEach((photo) => {
+      addHistory(batch, {
+        entityType: "activity",
+        entityId: after.id,
+        customerId: after.customerId,
+        action: "photo-uploaded",
+        summary: `Foto „${photo.name || "Kontaktfoto"}“ hochgeladen`,
+        snapshot: photo,
+      });
+    });
 
   const affectedCustomerIds = [...new Set([before.customerId, after.customerId])];
 

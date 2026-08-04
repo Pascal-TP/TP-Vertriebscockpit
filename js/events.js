@@ -153,6 +153,11 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "open-activity-photos") {
+    openActivityPhotos(recordId);
+    return;
+  }
+
   openForm(action, {
     customerId: recordId,
   });
@@ -180,7 +185,28 @@ function bindAppointmentEvents() {
 }
 
 function bindFormEvents() {
+  $("#dynamicForm").addEventListener("change", async (event) => {
+    if (!event.target.classList.contains("photo-input")) return;
+
+    try {
+      await window.crmPhotoStorage.addPhotoFiles(event.target.files);
+      renderPendingPhotoPreviews();
+    } catch (error) {
+      console.error("Photo selection failed:", error);
+      toast(error?.message || "Das Foto konnte nicht ausgewählt werden.");
+    } finally {
+      event.target.value = "";
+    }
+  });
+
   $("#dynamicForm").addEventListener("click", (event) => {
+    const removePhotoButton = event.target.closest("[data-remove-pending-photo]");
+    if (removePhotoButton) {
+      window.crmPhotoStorage.removePendingPhoto(removePhotoButton.dataset.removePendingPhoto);
+      renderPendingPhotoPreviews();
+      return;
+    }
+
     if (!event.target.classList.contains("open-note")) {
       return;
     }
@@ -223,6 +249,7 @@ function bindFormEvents() {
     });
 
     saveButton.disabled = false;
+    saveButton.textContent = form.dataset.mode === "edit" ? "Änderungen speichern" : "Speichern";
 
     if (saved) {
       $("#formDialog").close();
@@ -230,6 +257,29 @@ function bindFormEvents() {
   });
 }
 
+
+function renderPendingPhotoPreviews() {
+  const container = $("#activityPhotoPreview");
+  if (!container || !window.crmPhotoStorage) return;
+
+  const photos = window.crmPhotoStorage.getPendingPhotos();
+  container.innerHTML = photos.map((photo) => `
+    <figure class="photo-preview-card">
+      <img src="${photo.previewUrl}" alt="Vorschau ${photo.file.name}">
+      <figcaption>
+        <strong>${photo.file.name}</strong>
+        <span>${window.crmPhotoStorage.formatBytes(photo.file.size)}</span>
+      </figcaption>
+      <button
+        type="button"
+        class="photo-remove-button"
+        data-remove-pending-photo="${photo.id}"
+        aria-label="Foto entfernen"
+        title="Foto entfernen"
+      >×</button>
+    </figure>
+  `).join("");
+}
 
 function bindSearchEvents() {
   $("#globalSearch").onkeydown = (event) => {

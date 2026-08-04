@@ -33,6 +33,11 @@ function renderActivities() {
           <td>
             ${activity.note || "–"}
             ${
+              Array.isArray(activity.photos) && activity.photos.length
+                ? `<br><button class="attachment-count-button" data-action="open-activity-photos" data-id="${activity.id}">📷 Fotos: ${activity.photos.length}</button>`
+                : ""
+            }
+            ${
               activity.handNote
                 ? '<br><span class="tag">Handnotiz vorhanden</span>'
                 : ""
@@ -162,5 +167,34 @@ function applyActivityResultToCustomer(customer, result) {
 
   if (result === "Verloren") {
     customer.pipeline = "09 Verloren";
+  }
+}
+
+
+async function openActivityPhotos(activityId) {
+  const activity = activityById(activityId);
+  if (!activity?.photos?.length) {
+    toast("Für diesen Kontakt sind keine Fotos gespeichert.");
+    return;
+  }
+
+  const dialog = $("#activityPhotosDialog");
+  const grid = $("#activityPhotosGrid");
+  const customer = customerById(activity.customerId);
+  $("#activityPhotosTitle").textContent = `Fotos – ${customer?.name || "Kontakt"}`;
+  grid.innerHTML = '<div class="photo-loading">Fotos werden geladen …</div>';
+  dialog.showModal();
+
+  try {
+    const photos = await window.crmPhotoStorage.getPhotoUrls(activity.photos);
+    grid.innerHTML = photos.map((photo) => photo.url ? `
+      <a class="stored-photo-card" href="${photo.url}" target="_blank" rel="noopener">
+        <img src="${photo.url}" alt="${photo.name || "Kontaktfoto"}" loading="lazy">
+        <span>${photo.name || "Foto"}</span>
+      </a>
+    ` : "").join("") || '<div class="photo-loading">Die Fotos konnten nicht geladen werden.</div>';
+  } catch (error) {
+    console.error("Loading activity photos failed:", error);
+    grid.innerHTML = '<div class="photo-loading">Die Fotos konnten nicht geladen werden.</div>';
   }
 }

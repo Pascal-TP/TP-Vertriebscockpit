@@ -94,6 +94,7 @@ const formConfigs = {
       ["due", "Fällig am", "date"],
       ["note", "Kurznotiz", "textarea"],
       ["handNote", "Handschriftliche Notiz", "hand"],
+      ["photos", "Fotos", "photos"],
     ],
   },
 
@@ -179,6 +180,8 @@ function assertCustomerMayReceiveNewRecord(
 }
 
 function openForm(type, preset = {}, options = {}) {
+  window.crmPhotoStorage?.resetPendingPhotos();
+
   const config = formConfigs[type];
   const mode = options.mode || "create";
   const recordId = options.recordId || "";
@@ -254,6 +257,26 @@ function openForm(type, preset = {}, options = {}) {
         control = `
           <textarea name="${name}" ${required}>${value}</textarea>
         `;
+      } else if (input === "photos") {
+        const savedPhotos = Array.isArray(preset.photos) ? preset.photos : [];
+        control = `
+          <div class="photo-picker">
+            <input
+              class="photo-input"
+              id="activityPhotoInput"
+              type="file"
+              accept="image/*"
+              capture="environment"
+              multiple
+            >
+            <label class="secondary-button photo-picker-button" for="activityPhotoInput">
+              📷 Foto aufnehmen / auswählen
+            </label>
+            <small>Bis zu 8 neue Fotos. Große Bilder werden vor dem Upload verkleinert.</small>
+            ${savedPhotos.length ? `<div class="saved-photo-note">Bereits gespeichert: ${savedPhotos.length} Foto${savedPhotos.length === 1 ? "" : "s"}</div>` : ""}
+            <div class="photo-preview-grid" id="activityPhotoPreview"></div>
+          </div>
+        `;
       } else if (input === "hand") {
         control = `
           <input
@@ -286,7 +309,7 @@ function openForm(type, preset = {}, options = {}) {
 
       return `
         <div class="field ${
-          input === "textarea" || input === "hand" ? "full" : ""
+          input === "textarea" || input === "hand" || input === "photos" ? "full" : ""
         }">
           <label>${label}</label>
           ${control}
@@ -419,10 +442,19 @@ async function saveActivity(values, mode, recordId, options = {}) {
       throw new Error("Die Aktivität wurde nicht gefunden.");
     }
 
+    const uploadedPhotos = await window.crmPhotoStorage?.uploadPendingPhotos(
+      activity.id,
+      (current, total) => {
+        const saveButton = $("#dialogSaveButton");
+        if (saveButton) saveButton.textContent = `Foto ${current} von ${total} wird gespeichert …`;
+      },
+    ) || [];
+
     const updatedActivity = {
       ...activity,
       ...values,
       id: activity.id,
+      photos: [...(activity.photos || []), ...uploadedPhotos],
     };
 
     return window.crmFirestore.updateActivity(
@@ -440,9 +472,19 @@ async function saveActivity(values, mode, recordId, options = {}) {
     ? appointmentById(sourceAppointmentId)
     : null;
 
+  const activityId = `A-${Date.now()}`;
+  const uploadedPhotos = await window.crmPhotoStorage?.uploadPendingPhotos(
+    activityId,
+    (current, total) => {
+      const saveButton = $("#dialogSaveButton");
+      if (saveButton) saveButton.textContent = `Foto ${current} von ${total} wird gespeichert …`;
+    },
+  ) || [];
+
   const activity = {
     ...values,
-    id: `A-${Date.now()}`,
+    id: activityId,
+    photos: uploadedPhotos,
     ...(sourceAppointmentId
       ? {
           sourceAppointmentId,

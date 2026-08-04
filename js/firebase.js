@@ -1,6 +1,7 @@
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-app.js";
 import { getAuth } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-auth.js";
 import { getFirestore } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-firestore.js";
+import { getFunctions } from "https://www.gstatic.com/firebasejs/12.16.0/firebase-functions.js";
 
 /*
  * Hauptprojekt des Vertriebscockpits
@@ -45,10 +46,12 @@ const crmDb = getFirestore(crmApp);
  * Damit entstehen in diesem Schritt keine Zugriffe auf den Blaze-Storage.
  */
 const blazeApp = initializeApp(blazeConfig, "kalkproBlaze");
+const blazeFunctions = getFunctions(blazeApp, "europe-west1");
 
 export {
   crmApp,
   crmAuth,
   crmDb,
   blazeApp,
+  blazeFunctions,
 };
