@@ -86,9 +86,62 @@ function appointmentCalendarCard(appointment) {
         >
           Löschen
         </button>
+
+        <button
+          class="text-button"
+          data-action="create-contact-from-appointment"
+          data-id="${appointment.id}"
+          aria-label="Kontakt aus Termin erfassen"
+          title="Kontakt aus Termin erfassen"
+        >
+          + Kontakt erfassen
+        </button>
       </div>
     </div>
   `;
+}
+
+function openActivityFromAppointment(appointmentId) {
+  const appointment = appointmentById(appointmentId);
+
+  if (!appointment) {
+    toast("Der Termin wurde nicht gefunden.");
+    return;
+  }
+
+  const customer = customerById(appointment.customerId);
+
+  if (customer?.archived === true) {
+    toast(
+      "Für einen archivierten Kunden kann kein neuer Kontakt erfasst werden.",
+    );
+    return;
+  }
+
+  const noteParts = [
+    appointment.subject
+      ? `Termin: ${appointment.subject}`
+      : "",
+    appointment.note
+      ? `Terminnotiz: ${appointment.note}`
+      : "",
+  ].filter(Boolean);
+
+  openForm(
+    "activity",
+    {
+      customerId: appointment.customerId,
+      date: appointment.date,
+      owner: appointment.owner,
+      type: "Vor-Ort-Besuch",
+      result: "Termin durchgeführt",
+      note: noteParts.join("\n\n"),
+      sourceAppointmentId: appointment.id,
+    },
+    {
+      sourceAppointmentId: appointment.id,
+    },
+  );
 }
 
 function openAppointmentEditForm(appointmentId) {

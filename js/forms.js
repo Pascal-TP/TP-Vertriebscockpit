@@ -192,6 +192,8 @@ function openForm(type, preset = {}, options = {}) {
   form.dataset.type = type;
   form.dataset.mode = mode;
   form.dataset.recordId = recordId;
+  form.dataset.sourceAppointmentId =
+    options.sourceAppointmentId || preset.sourceAppointmentId || "";
 
   $("#dialogSaveButton").textContent =
     mode === "edit" ? "Änderungen speichern" : "Speichern";
@@ -308,7 +310,7 @@ async function saveForm(type, values, options = {}) {
     }
 
     if (type === "activity") {
-      changed = await saveActivity(values, mode, recordId);
+      changed = await saveActivity(values, mode, recordId, options);
     }
 
     if (type === "appointment") {
@@ -400,7 +402,7 @@ async function saveCustomer(values, mode, recordId) {
   return true;
 }
 
-async function saveActivity(values, mode, recordId) {
+async function saveActivity(values, mode, recordId, options = {}) {
   const existingActivity =
     mode === "edit" ? activityById(recordId) : null;
 
@@ -433,9 +435,20 @@ async function saveActivity(values, mode, recordId) {
     );
   }
 
+  const sourceAppointmentId = options.sourceAppointmentId || "";
+  const sourceAppointment = sourceAppointmentId
+    ? appointmentById(sourceAppointmentId)
+    : null;
+
   const activity = {
     ...values,
     id: `A-${Date.now()}`,
+    ...(sourceAppointmentId
+      ? {
+          sourceAppointmentId,
+          sourceType: "appointment",
+        }
+      : {}),
   };
 
   const followup =
@@ -456,6 +469,7 @@ async function saveActivity(values, mode, recordId) {
     activities: data.activities,
     customer: customerById(values.customerId),
     followup,
+    sourceAppointment,
   });
 
   return true;

@@ -143,7 +143,11 @@ function auditData(action) {
     updatedByEmail: currentActor.email,
   };
 
-  if (["created", "imported", "migrated"].includes(action)) {
+  if (
+    ["created", "created-from-appointment", "imported", "migrated"].includes(
+      action,
+    )
+  ) {
     Object.assign(values, {
       createdAt: serverTimestamp(),
       createdByUid: currentActor.uid,
@@ -395,14 +399,18 @@ async function createActivity(activity, context) {
   const batch = writeBatch(crmDb);
   const customer = context.customer;
   const futureActivities = [...context.activities, activity];
+  const createdFromAppointment = Boolean(activity.sourceAppointmentId);
+  const sourceSubject = context.sourceAppointment?.subject || activity.sourceAppointmentId;
 
   addEntityWrite(batch, {
     collectionName: "activities",
     entityId: activity.id,
     data: activity,
-    action: "created",
+    action: createdFromAppointment ? "created-from-appointment" : "created",
     customerId: activity.customerId,
-    summary: `Aktivität „${activity.type || activity.id}“ angelegt`,
+    summary: createdFromAppointment
+      ? `Kontakt aus Termin „${sourceSubject}“ erzeugt`
+      : `Aktivität „${activity.type || activity.id}“ angelegt`,
     snapshot: activity,
     merge: false,
   });

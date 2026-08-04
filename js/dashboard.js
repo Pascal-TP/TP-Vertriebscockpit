@@ -143,8 +143,31 @@ function renderDashboard() {
       )
       .join("") || "<p>Kein akuter Handlungsbedarf.</p>";
 }
-function appointmentCompact(a) {
+function appointmentCompact(a, options = {}) {
   const c = customerById(a.customerId);
   const d = new Date(a.date + "T12:00:00");
-  return `<div class="compact-item"><div class="compact-date"><strong>${d.getDate()}</strong><span>${d.toLocaleDateString("de-DE", { month: "short" })}</span></div><div><h3>${a.time} · ${c?.name || "Unbekannt"}</h3><p>${a.subject} · ${a.owner}</p></div><button class="text-button map-link" data-customer="${a.customerId}">Maps</button></div>`;
+  const actions = options.showActions
+    ? `
+      <div class="compact-actions">
+        <button class="text-button map-link" data-customer="${a.customerId}">Maps</button>
+        <button class="text-button" data-action="edit-appointment" data-id="${a.id}">Bearbeiten</button>
+        <button class="text-button danger-text-button" data-action="delete-appointment" data-id="${a.id}">Löschen</button>
+        <button class="text-button" data-action="create-contact-from-appointment" data-id="${a.id}">+ Kontakt erfassen</button>
+      </div>
+    `
+    : `<button class="text-button map-link" data-customer="${a.customerId}">Maps</button>`;
+
+  return `
+    <div class="compact-item">
+      <div class="compact-date">
+        <strong>${d.getDate()}</strong>
+        <span>${d.toLocaleDateString("de-DE", { month: "short" })}</span>
+      </div>
+      <div>
+        <h3>${a.time} · ${c?.name || "Unbekannt"}</h3>
+        <p>${a.subject} · ${a.owner}</p>
+      </div>
+      ${actions}
+    </div>
+  `;
 }

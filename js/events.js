@@ -118,6 +118,11 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "create-contact-from-appointment") {
+    openActivityFromAppointment(recordId);
+    return;
+  }
+
   if (action === "edit-followup") {
     openFollowupEditForm(recordId);
     return;
@@ -214,6 +219,7 @@ function bindFormEvents() {
     const saved = await saveForm(form.dataset.type, values, {
       mode: form.dataset.mode,
       recordId: form.dataset.recordId,
+      sourceAppointmentId: form.dataset.sourceAppointmentId || "",
     });
 
     saveButton.disabled = false;
