@@ -118,9 +118,15 @@ function renderCustomerDetail(id) {
 
   const isArchived = customer.archived === true;
 
-  const history = data.activities
+  const customerActivities = data.activities
     .filter((activity) => activity.customerId === id)
-    .sort((a, b) => b.date.localeCompare(a.date));
+    .sort((a, b) => {
+      const dateCompare = String(b.date || "").localeCompare(String(a.date || ""));
+      if (dateCompare !== 0) return dateCompare;
+      return String(b.updatedAt || b.createdAt || "").localeCompare(
+        String(a.updatedAt || a.createdAt || ""),
+      );
+    });
 
   $("#customerDetail").innerHTML = `
     <div class="detail-header">
@@ -307,53 +313,71 @@ function renderCustomerDetail(id) {
         <p>${customer.note || "Keine Notiz vorhanden."}</p>
       </section>
 
-      <section>
-        <div class="section-title-row">
-          <h3 class="section-title">CRM-Historie</h3>
-          <button
-            type="button"
-            class="text-button"
-            data-action="refresh-customer-history"
-            data-id="${customer.id}"
-          >
-            Aktualisieren
-          </button>
+      <section class="customer-contact-section">
+        <div class="section-title-row customer-contact-heading">
+          <div>
+            <h3 class="section-title">Erfasste Kontakte</h3>
+            <p class="section-subtitle">
+              ${customerActivities.length === 1 ? "1 Kontakt" : `${customerActivities.length} Kontakte`}
+            </p>
+          </div>
+
+          ${
+            isArchived
+              ? ""
+              : `<button
+                  type="button"
+                  class="text-button"
+                  data-action="activity"
+                  data-id="${customer.id}"
+                >
+                  + Kontakt erfassen
+                </button>`
+          }
         </div>
 
-        <div id="customerAuditHistory" class="audit-history">
-          <p class="audit-loading">Historie wird geladen …</p>
+        <div class="customer-contact-list">
+          ${
+            customerActivities.length
+              ? customerActivities.map(renderCustomerContactCard).join("")
+              : '<p class="empty-customer-contacts">Für diesen Kunden wurden noch keine Kontakte erfasst.</p>'
+          }
         </div>
       </section>
 
-      <section>
-        <h3 class="section-title">Kontaktverlauf</h3>
+      <section class="customer-history-section">
+        <button
+          type="button"
+          class="customer-history-toggle"
+          data-action="toggle-customer-history"
+          data-id="${customer.id}"
+          aria-expanded="false"
+          aria-controls="customerHistoryPanel"
+        >
+          <span>
+            <strong>CRM-Historie</strong>
+            <small>Änderungen und protokollierte Aktionen anzeigen</small>
+          </span>
+          <span class="customer-history-toggle-icon" aria-hidden="true">⌄</span>
+        </button>
 
-        ${
-          history.length
-            ? history
-                .map(
-                  (activity) => `
-                    <div class="history-item">
-                      <time>${formatDate(activity.date)}</time>
+        <div id="customerHistoryPanel" class="customer-history-panel" hidden>
+          <div class="customer-history-panel-head">
+            <span>Chronologische Änderungshistorie</span>
+            <button
+              type="button"
+              class="text-button"
+              data-action="refresh-customer-history"
+              data-id="${customer.id}"
+            >
+              Aktualisieren
+            </button>
+          </div>
 
-                      <div>
-                        <h4>${activity.type} · ${activity.result}</h4>
-
-                        <p>
-                          ${activity.note || "Keine Notiz"}
-                          ${
-                            activity.next
-                              ? ` · Nächster Schritt: ${activity.next}`
-                              : ""
-                          }
-                        </p>
-                      </div>
-                    </div>
-                  `,
-                )
-                .join("")
-            : "<p>Noch keine Aktivitäten vorhanden.</p>"
-        }
+          <div id="customerAuditHistory" class="audit-history">
+            <p class="audit-loading">Historie wird beim Öffnen geladen.</p>
+          </div>
+        </div>
       </section>
     </div>
   `;
@@ -362,7 +386,79 @@ function renderCustomerDetail(id) {
     row.classList.toggle("active", row.dataset.id === id),
   );
 
-  renderCustomerAuditHistory(id);
+}
+
+function renderCustomerContactCard(activity) {
+  const photoCount = Array.isArray(activity.photos) ? activity.photos.length : 0;
+  const documentCount = Array.isArray(activity.documents)
+    ? activity.documents.length
+    : 0;
+
+  return `
+    <article class="customer-contact-card">
+      <div class="customer-contact-date">
+        <strong>${formatDate(activity.date)}</strong>
+        <small>${activity.owner || "Kein Außendienst"}</small>
+      </div>
+
+      <div class="customer-contact-content">
+        <div class="customer-contact-title-row">
+          <h4>${activity.type || "Kontakt"}</h4>
+          <span class="status-pill">${activity.result || "Ohne Ergebnis"}</span>
+        </div>
+
+        <p>${activity.note || "Keine Notiz vorhanden."}</p>
+
+        ${
+          activity.next
+            ? `<div class="customer-contact-next"><strong>Nächster Schritt:</strong> ${activity.next}${activity.due ? ` · ${formatDate(activity.due)}` : ""}</div>`
+            : ""
+        }
+
+        <div class="customer-contact-footer">
+          <div class="customer-contact-attachments">
+            ${
+              photoCount
+                ? `<button class="attachment-count-button" type="button" data-action="open-activity-photos" data-id="${activity.id}">📷 Fotos: ${photoCount}</button>`
+                : ""
+            }
+            ${
+              documentCount
+                ? `<button class="attachment-count-button" type="button" data-action="open-activity-documents" data-id="${activity.id}">📎 Dokumente: ${documentCount}</button>`
+                : ""
+            }
+            ${activity.handNote ? '<span class="tag">Handnotiz vorhanden</span>' : ""}
+          </div>
+
+          <button
+            type="button"
+            class="secondary-button compact-button"
+            data-action="edit-activity"
+            data-id="${activity.id}"
+          >
+            Bearbeiten
+          </button>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function toggleCustomerHistory(customerId, button) {
+  if (currentCustomerId !== customerId) return;
+
+  const panel = $("#customerHistoryPanel");
+  if (!panel) return;
+
+  const shouldOpen = panel.hidden;
+  panel.hidden = !shouldOpen;
+  button?.setAttribute("aria-expanded", String(shouldOpen));
+  button?.classList.toggle("open", shouldOpen);
+
+  if (shouldOpen && panel.dataset.loaded !== "true") {
+    panel.dataset.loaded = "true";
+    renderCustomerAuditHistory(customerId);
+  }
 }
 
 async function renderCustomerAuditHistory(customerId) {

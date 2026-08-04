@@ -103,6 +103,11 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "toggle-customer-history") {
+    toggleCustomerHistory(recordId, button);
+    return;
+  }
+
   if (action === "refresh-customer-history") {
     renderCustomerAuditHistory(recordId);
     return;
