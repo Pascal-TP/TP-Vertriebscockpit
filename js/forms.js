@@ -126,6 +126,58 @@ const formConfigs = {
   },
 };
 
+function customersForForm(selectedCustomerId = "") {
+  const activeCustomers = data.customers.filter(
+    (customer) => customer.archived !== true,
+  );
+
+  const selectedCustomer = customerById(selectedCustomerId);
+
+  /*
+   * Beim Bearbeiten eines alten Vorgangs bleibt dessen inzwischen
+   * archivierter Kunde sichtbar. Andere archivierte Kunden werden nicht
+   * angeboten.
+   */
+  if (
+    selectedCustomer?.archived === true &&
+    !activeCustomers.some((customer) => customer.id === selectedCustomer.id)
+  ) {
+    return [selectedCustomer, ...activeCustomers];
+  }
+
+  return activeCustomers;
+}
+
+function customerOptionLabel(customer) {
+  const location = customer.city ? ` · ${customer.city}` : "";
+  const archived = customer.archived === true ? " – archiviert" : "";
+
+  return `${customer.name}${location}${archived}`;
+}
+
+function assertCustomerMayReceiveNewRecord(
+  customerId,
+  mode,
+  originalCustomerId = "",
+) {
+  const customer = customerById(customerId);
+
+  if (!customer) {
+    throw new Error("Der ausgewählte Kunde wurde nicht gefunden.");
+  }
+
+  if (
+    customer.archived === true &&
+    !(mode === "edit" && customerId === originalCustomerId)
+  ) {
+    throw new Error(
+      "Für archivierte Kunden können keine neuen Vorgänge angelegt werden.",
+    );
+  }
+
+  return customer;
+}
+
 function openForm(type, preset = {}, options = {}) {
   const config = formConfigs[type];
   const mode = options.mode || "create";
@@ -174,20 +226,26 @@ function openForm(type, preset = {}, options = {}) {
           </select>
         `;
       } else if (input === "customer") {
+        const selectableCustomers = customersForForm(value);
+
         control = `
           <select name="${name}" ${required}>
-            ${data.customers
-              .map(
-                (customer) => `
-                  <option
-                    value="${customer.id}"
-                    ${customer.id === value ? "selected" : ""}
-                  >
-                    ${customer.name} · ${customer.city}
-                  </option>
-                `,
-              )
-              .join("")}
+            ${
+              selectableCustomers.length
+                ? selectableCustomers
+                    .map(
+                      (customer) => `
+                        <option
+                          value="${customer.id}"
+                          ${customer.id === value ? "selected" : ""}
+                        >
+                          ${customerOptionLabel(customer)}
+                        </option>
+                      `,
+                    )
+                    .join("")
+                : '<option value="">Keine aktiven Kunden vorhanden</option>'
+            }
           </select>
         `;
       } else if (input === "textarea") {
@@ -343,8 +401,17 @@ async function saveCustomer(values, mode, recordId) {
 }
 
 async function saveActivity(values, mode, recordId) {
+  const existingActivity =
+    mode === "edit" ? activityById(recordId) : null;
+
+  assertCustomerMayReceiveNewRecord(
+    values.customerId,
+    mode,
+    existingActivity?.customerId || "",
+  );
+
   if (mode === "edit") {
-    const activity = activityById(recordId);
+    const activity = existingActivity;
 
     if (!activity) {
       throw new Error("Die Aktivität wurde nicht gefunden.");
@@ -395,8 +462,17 @@ async function saveActivity(values, mode, recordId) {
 }
 
 async function saveAppointment(values, mode, recordId) {
+  const existingAppointment =
+    mode === "edit" ? appointmentById(recordId) : null;
+
+  assertCustomerMayReceiveNewRecord(
+    values.customerId,
+    mode,
+    existingAppointment?.customerId || "",
+  );
+
   if (mode === "edit") {
-    const appointment = appointmentById(recordId);
+    const appointment = existingAppointment;
 
     if (!appointment) {
       throw new Error("Der Termin wurde nicht gefunden.");
@@ -432,8 +508,17 @@ async function saveAppointment(values, mode, recordId) {
 }
 
 async function saveFollowup(values, mode, recordId) {
+  const existingFollowup =
+    mode === "edit" ? followupById(recordId) : null;
+
+  assertCustomerMayReceiveNewRecord(
+    values.customerId,
+    mode,
+    existingFollowup?.customerId || "",
+  );
+
   if (mode === "edit") {
-    const followup = followupById(recordId);
+    const followup = existingFollowup;
 
     if (!followup) {
       throw new Error("Die Wiedervorlage wurde nicht gefunden.");
