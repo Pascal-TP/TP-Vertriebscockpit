@@ -199,6 +199,8 @@ function openForm(type, preset = {}, options = {}) {
   form.dataset.recordId = recordId;
   form.dataset.sourceAppointmentId =
     options.sourceAppointmentId || preset.sourceAppointmentId || "";
+  form.dataset.sourceFollowupId =
+    options.sourceFollowupId || preset.sourceFollowupId || "";
 
   $("#dialogSaveButton").textContent =
     mode === "edit" ? "Änderungen speichern" : "Speichern";
@@ -436,7 +438,7 @@ async function saveForm(type, values, options = {}) {
     }
 
     if (type === "appointment") {
-      changed = await saveAppointment(values, mode, recordId);
+      changed = await saveAppointment(values, mode, recordId, options);
     }
 
     if (type === "followup") {
@@ -634,7 +636,7 @@ async function saveActivity(values, mode, recordId, options = {}) {
   return true;
 }
 
-async function saveAppointment(values, mode, recordId) {
+async function saveAppointment(values, mode, recordId, options = {}) {
   const existingAppointment =
     mode === "edit" ? appointmentById(recordId) : null;
 
@@ -667,14 +669,24 @@ async function saveAppointment(values, mode, recordId) {
     );
   }
 
+  const sourceFollowupId = options.sourceFollowupId || "";
+  const sourceFollowup = sourceFollowupId ? followupById(sourceFollowupId) : null;
+
   const appointment = {
     ...values,
     id: `T-${Date.now()}`,
+    ...(sourceFollowupId
+      ? {
+          sourceFollowupId,
+          sourceType: "followup",
+        }
+      : {}),
   };
 
   await window.crmFirestore.createAppointment(appointment, {
     appointments: data.appointments,
     customers: data.customers,
+    sourceFollowup,
   });
 
   return true;

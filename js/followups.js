@@ -115,6 +115,18 @@ function followupCard(followup) {
         >
           Löschen
         </button>
+
+        ${
+          isCompleted
+            ? ""
+            : `<button
+                class="text-button"
+                data-action="create-appointment-from-followup"
+                data-id="${followup.id}"
+              >
+                + Termin
+              </button>`
+        }
       </div>
     </article>
   `;
@@ -122,6 +134,37 @@ function followupCard(followup) {
 
 function followupById(followupId) {
   return data.followups.find((followup) => followup.id === followupId);
+}
+
+
+function openAppointmentFromFollowup(followupId) {
+  const followup = followupById(followupId);
+
+  if (!followup) {
+    toast("Die Wiedervorlage wurde nicht gefunden.");
+    return;
+  }
+
+  const customer = customerById(followup.customerId);
+  if (customer?.archived === true) {
+    toast("Für einen archivierten Kunden kann kein neuer Termin angelegt werden.");
+    return;
+  }
+
+  openForm(
+    "appointment",
+    {
+      customerId: followup.customerId,
+      date: followup.due || iso(new Date()),
+      owner: followup.owner || customer?.owner || "",
+      subject: followup.task || "Wiedervorlage",
+      note: followup.task ? `Aus Wiedervorlage: ${followup.task}` : "Aus Wiedervorlage erstellt",
+      sourceFollowupId: followup.id,
+    },
+    {
+      sourceFollowupId: followup.id,
+    },
+  );
 }
 
 function openFollowupEditForm(followupId) {

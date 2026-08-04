@@ -575,13 +575,17 @@ async function createAppointment(appointment, context) {
     (item) => item.id === appointment.customerId,
   );
 
+  const createdFromFollowup = Boolean(context.sourceFollowup);
+
   addEntityWrite(batch, {
     collectionName: "appointments",
     entityId: appointment.id,
     data: appointment,
-    action: "created",
+    action: createdFromFollowup ? "created-from-followup" : "created",
     customerId: appointment.customerId,
-    summary: `Termin „${appointment.subject || appointment.id}“ angelegt`,
+    summary: createdFromFollowup
+      ? `Termin aus Wiedervorlage „${context.sourceFollowup.task || context.sourceFollowup.id}“ erzeugt`
+      : `Termin „${appointment.subject || appointment.id}“ angelegt`,
     snapshot: appointment,
     merge: false,
   });

@@ -128,6 +128,13 @@ function renderCustomerDetail(id) {
       );
     });
 
+  const openCustomerFollowups = data.followups
+    .filter(
+      (followup) =>
+        followup.customerId === id && followup.status !== "Erledigt",
+    )
+    .sort((a, b) => String(a.due || "9999-12-31").localeCompare(String(b.due || "9999-12-31")));
+
   $("#customerDetail").innerHTML = `
     <div class="detail-header">
       <div>
@@ -231,6 +238,14 @@ function renderCustomerDetail(id) {
               </button>
 
               <button
+                class="secondary-button"
+                data-action="followup"
+                data-id="${customer.id}"
+              >
+                + Wiedervorlage
+              </button>
+
+              <button
                 class="primary-button"
                 data-action="activity"
                 data-id="${customer.id}"
@@ -313,6 +328,38 @@ function renderCustomerDetail(id) {
         <p>${customer.note || "Keine Notiz vorhanden."}</p>
       </section>
 
+      <section class="customer-followup-section">
+        <div class="section-title-row customer-followup-heading">
+          <div>
+            <h3 class="section-title">Offene Wiedervorlagen</h3>
+            <p class="section-subtitle">
+              ${openCustomerFollowups.length === 1 ? "1 offene Wiedervorlage" : `${openCustomerFollowups.length} offene Wiedervorlagen`}
+            </p>
+          </div>
+
+          ${
+            isArchived
+              ? ""
+              : `<button
+                  type="button"
+                  class="text-button"
+                  data-action="followup"
+                  data-id="${customer.id}"
+                >
+                  + Wiedervorlage
+                </button>`
+          }
+        </div>
+
+        <div class="customer-followup-list">
+          ${
+            openCustomerFollowups.length
+              ? openCustomerFollowups.map(renderCustomerFollowupCard).join("")
+              : '<p class="empty-customer-followups">Für diesen Kunden sind keine offenen Wiedervorlagen vorhanden.</p>'
+          }
+        </div>
+      </section>
+
       <section class="customer-contact-section">
         <div class="section-title-row customer-contact-heading">
           <div>
@@ -386,6 +433,42 @@ function renderCustomerDetail(id) {
     row.classList.toggle("active", row.dataset.id === id),
   );
 
+}
+
+
+function renderCustomerFollowupCard(followup) {
+  const isOverdue = followup.due && followup.due < iso(new Date());
+  const priorityClass = isOverdue
+    ? "red"
+    : followup.priority === "Hoch"
+      ? "orange"
+      : "";
+  const priorityLabel = isOverdue ? "Überfällig" : (followup.priority || "Mittel");
+
+  return `
+    <article class="customer-followup-card">
+      <div class="customer-followup-date">
+        <strong>${formatDate(followup.due)}</strong>
+        <small>${followup.owner || "Kein Verantwortlicher"}</small>
+      </div>
+
+      <div class="customer-followup-content">
+        <div class="customer-followup-title-row">
+          <h4>${followup.task || "Wiedervorlage"}</h4>
+          <span class="status-pill ${priorityClass}">${priorityLabel}</span>
+        </div>
+
+        <div class="customer-followup-footer">
+          <span class="status-pill">${followup.status || "Offen"}</span>
+          <div class="customer-followup-actions">
+            <button type="button" class="text-button" data-action="edit-followup" data-id="${followup.id}">Bearbeiten</button>
+            <button type="button" class="text-button" data-action="create-appointment-from-followup" data-id="${followup.id}">+ Termin</button>
+            <button type="button" class="text-button" data-action="complete-followup" data-id="${followup.id}">Erledigen</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
 }
 
 function renderCustomerContactCard(activity) {

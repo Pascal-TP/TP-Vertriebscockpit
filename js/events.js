@@ -128,6 +128,11 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "create-appointment-from-followup") {
+    openAppointmentFromFollowup(recordId);
+    return;
+  }
+
   if (action === "edit-followup") {
     openFollowupEditForm(recordId);
     return;
@@ -168,9 +173,13 @@ function handleActionButton(button) {
     return;
   }
 
-  openForm(action, {
+  const customer = customerById(recordId);
+  const preset = {
     customerId: recordId,
-  });
+    owner: customer?.owner || "",
+  };
+
+  openForm(action, preset);
 }
 
 function bindCreateButtonEvents() {
@@ -276,6 +285,7 @@ function bindFormEvents() {
       mode: form.dataset.mode,
       recordId: form.dataset.recordId,
       sourceAppointmentId: form.dataset.sourceAppointmentId || "",
+      sourceFollowupId: form.dataset.sourceFollowupId || "",
     });
 
     saveButton.disabled = false;
