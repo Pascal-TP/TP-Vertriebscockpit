@@ -3004,3 +3004,97 @@ body.backup-busy {
         flex-direction: column;
     }
 }
+
+
+/* ==========================
+   V2.10.0: Offene Wiedervorlagen in der Kundenkartei
+========================== */
+.customer-followup-section {
+    margin-top: 4px;
+    margin-bottom: 18px;
+}
+
+.customer-followup-heading {
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.customer-followup-heading .section-title {
+    margin-bottom: 3px;
+}
+
+.customer-followup-list {
+    display: grid;
+    gap: 10px;
+}
+
+.customer-followup-card {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fff;
+}
+
+.customer-followup-date {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 13px;
+    border-right: 1px solid var(--line);
+}
+
+.customer-followup-date strong { font-size: .8rem; }
+.customer-followup-date small {
+    color: var(--muted);
+    font-size: .68rem;
+    overflow-wrap: anywhere;
+}
+
+.customer-followup-content { min-width: 0; }
+.customer-followup-title-row,
+.customer-followup-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+.customer-followup-title-row h4 {
+    margin: 0;
+    font-size: .84rem;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+.customer-followup-footer { margin-top: 12px; }
+.customer-followup-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+.empty-customer-followups {
+    margin: 0;
+    padding: 14px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: .76rem;
+}
+
+@media (max-width: 700px) {
+    .customer-followup-card { grid-template-columns: 1fr; }
+    .customer-followup-date {
+        padding-right: 0;
+        padding-bottom: 9px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+    .customer-followup-title-row,
+    .customer-followup-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+    .customer-followup-actions { justify-content: flex-start; }
+}
