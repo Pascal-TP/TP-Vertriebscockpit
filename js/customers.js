@@ -135,6 +135,18 @@ function renderCustomerDetail(id) {
     )
     .sort((a, b) => String(a.due || "9999-12-31").localeCompare(String(b.due || "9999-12-31")));
 
+  const upcomingCustomerAppointments = data.appointments
+    .filter(
+      (appointment) =>
+        appointment.customerId === id &&
+        appointment.date >= iso(new Date()),
+    )
+    .sort((a, b) =>
+      `${a.date || "9999-12-31"} ${a.time || "23:59"}`.localeCompare(
+        `${b.date || "9999-12-31"} ${b.time || "23:59"}`,
+      ),
+    );
+
   $("#customerDetail").innerHTML = `
     <div class="detail-header">
       <div>
@@ -360,6 +372,38 @@ function renderCustomerDetail(id) {
         </div>
       </section>
 
+      <section class="customer-appointment-section">
+        <div class="section-title-row customer-appointment-heading">
+          <div>
+            <h3 class="section-title">Kommende Termine</h3>
+            <p class="section-subtitle">
+              ${upcomingCustomerAppointments.length === 1 ? "1 kommender Termin" : `${upcomingCustomerAppointments.length} kommende Termine`}
+            </p>
+          </div>
+
+          ${
+            isArchived
+              ? ""
+              : `<button
+                  type="button"
+                  class="text-button"
+                  data-action="appointment"
+                  data-id="${customer.id}"
+                >
+                  + Termin
+                </button>`
+          }
+        </div>
+
+        <div class="customer-appointment-list">
+          ${
+            upcomingCustomerAppointments.length
+              ? upcomingCustomerAppointments.map(renderCustomerAppointmentCard).join("")
+              : '<p class="empty-customer-appointments">Für diesen Kunden sind keine kommenden Termine vorhanden.</p>'
+          }
+        </div>
+      </section>
+
       <section class="customer-contact-section">
         <div class="section-title-row customer-contact-heading">
           <div>
@@ -464,6 +508,42 @@ function renderCustomerFollowupCard(followup) {
             <button type="button" class="text-button" data-action="edit-followup" data-id="${followup.id}">Bearbeiten</button>
             <button type="button" class="text-button" data-action="create-appointment-from-followup" data-id="${followup.id}">+ Termin</button>
             <button type="button" class="text-button" data-action="complete-followup" data-id="${followup.id}">Erledigen</button>
+          </div>
+        </div>
+      </div>
+    </article>
+  `;
+}
+
+function renderCustomerAppointmentCard(appointment) {
+  const isToday = appointment.date === iso(new Date());
+
+  return `
+    <article class="customer-appointment-card">
+      <div class="customer-appointment-date">
+        <strong>${formatDate(appointment.date)}</strong>
+        <small>${appointment.time ? `${appointment.time} Uhr` : "Keine Uhrzeit"}</small>
+      </div>
+
+      <div class="customer-appointment-content">
+        <div class="customer-appointment-title-row">
+          <h4>${appointment.subject || "Termin"}</h4>
+          ${isToday ? '<span class="status-pill green">Heute</span>' : ""}
+        </div>
+
+        ${
+          appointment.note
+            ? `<p>${appointment.note}</p>`
+            : '<p class="customer-appointment-empty-note">Keine Notiz vorhanden.</p>'
+        }
+
+        <div class="customer-appointment-footer">
+          <small>${appointment.owner || "Kein Außendienst"}</small>
+
+          <div class="customer-appointment-actions">
+            <button type="button" class="text-button" data-action="edit-appointment" data-id="${appointment.id}">Bearbeiten</button>
+            <button type="button" class="text-button" data-action="create-contact-from-appointment" data-id="${appointment.id}">+ Kontakt erfassen</button>
+            <button type="button" class="text-button danger-text-button" data-action="delete-appointment" data-id="${appointment.id}">Löschen</button>
           </div>
         </div>
       </div>
