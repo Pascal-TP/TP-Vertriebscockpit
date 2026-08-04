@@ -2799,3 +2799,208 @@ body.backup-busy {
   .document-picker-button { width: 100%; justify-content: center; }
   .document-open-label { display: none; }
 }
+
+/* ==========================
+   Kundenkartei: Kontakte und einklappbare Historie
+========================== */
+
+.customer-contact-section {
+    margin-top: 4px;
+}
+
+.customer-contact-heading {
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.customer-contact-heading .section-title {
+    margin-bottom: 3px;
+}
+
+.section-subtitle {
+    margin: 0;
+    color: var(--muted);
+    font-size: .72rem;
+}
+
+.customer-contact-list {
+    display: grid;
+    gap: 11px;
+}
+
+.customer-contact-card {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fff;
+}
+
+.customer-contact-date {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 13px;
+    border-right: 1px solid var(--line);
+}
+
+.customer-contact-date strong {
+    font-size: .8rem;
+}
+
+.customer-contact-date small {
+    color: var(--muted);
+    font-size: .68rem;
+    overflow-wrap: anywhere;
+}
+
+.customer-contact-content {
+    min-width: 0;
+}
+
+.customer-contact-title-row,
+.customer-contact-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.customer-contact-title-row h4 {
+    margin: 0;
+    font-size: .84rem;
+}
+
+.customer-contact-content > p {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: .76rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.customer-contact-next {
+    margin-top: 8px;
+    padding: 8px 10px;
+    border-radius: 9px;
+    background: var(--blue-soft);
+    color: var(--blue);
+    font-size: .72rem;
+}
+
+.customer-contact-footer {
+    margin-top: 11px;
+    align-items: flex-end;
+}
+
+.customer-contact-attachments {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+}
+
+.compact-button {
+    flex: 0 0 auto;
+    padding: 7px 10px;
+    font-size: .7rem;
+}
+
+.empty-customer-contacts {
+    margin: 0;
+    padding: 14px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: .76rem;
+}
+
+.customer-history-section {
+    margin-top: 18px;
+}
+
+.customer-history-toggle {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 13px 14px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #f8fafb;
+    color: var(--text);
+    cursor: pointer;
+    text-align: left;
+}
+
+.customer-history-toggle > span:first-child {
+    display: grid;
+    gap: 3px;
+}
+
+.customer-history-toggle strong {
+    font-size: .82rem;
+}
+
+.customer-history-toggle small {
+    color: var(--muted);
+    font-size: .68rem;
+}
+
+.customer-history-toggle-icon {
+    color: var(--blue);
+    font-size: 1.15rem;
+    transition: transform .18s ease;
+}
+
+.customer-history-toggle.open .customer-history-toggle-icon {
+    transform: rotate(180deg);
+}
+
+.customer-history-panel {
+    margin-top: 10px;
+    padding: 13px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #fff;
+}
+
+.customer-history-panel[hidden] {
+    display: none;
+}
+
+.customer-history-panel-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+    color: var(--muted);
+    font-size: .7rem;
+}
+
+@media (max-width: 720px) {
+    .customer-contact-card {
+        grid-template-columns: 1fr;
+    }
+
+    .customer-contact-date {
+        padding-right: 0;
+        padding-bottom: 9px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .customer-contact-title-row,
+    .customer-contact-footer {
+        align-items: flex-start;
+    }
+
+    .customer-contact-footer {
+        flex-direction: column;
+    }
+}
