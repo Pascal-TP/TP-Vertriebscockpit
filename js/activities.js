@@ -180,8 +180,16 @@ async function openActivityPhotos(activityId) {
 
   const dialog = $("#activityPhotosDialog");
   const grid = $("#activityPhotosGrid");
+  const title = $("#activityPhotosTitle");
+
+  if (!dialog || !grid || !title) {
+    console.error("Foto-Dialog fehlt in index.html.");
+    toast("Die Fotoansicht konnte nicht geöffnet werden.");
+    return;
+  }
+
   const customer = customerById(activity.customerId);
-  $("#activityPhotosTitle").textContent = `Fotos – ${customer?.name || "Kontakt"}`;
+  title.textContent = `Fotos – ${customer?.name || "Kontakt"}`;
   grid.innerHTML = '<div class="photo-loading">Fotos werden geladen …</div>';
   dialog.showModal();
 

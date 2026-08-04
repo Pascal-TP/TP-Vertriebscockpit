@@ -273,7 +273,13 @@ function openForm(type, preset = {}, options = {}) {
               📷 Foto aufnehmen / auswählen
             </label>
             <small>Bis zu 8 neue Fotos. Große Bilder werden vor dem Upload verkleinert.</small>
-            ${savedPhotos.length ? `<div class="saved-photo-note">Bereits gespeichert: ${savedPhotos.length} Foto${savedPhotos.length === 1 ? "" : "s"}</div>` : ""}
+            ${savedPhotos.length ? `
+              <div class="saved-photo-note">Bereits gespeichert: ${savedPhotos.length} Foto${savedPhotos.length === 1 ? "" : "s"}</div>
+              <div class="saved-photo-grid" id="activitySavedPhotoGrid">
+                <div class="photo-loading">Gespeicherte Fotos werden geladen …</div>
+              </div>
+            ` : ""}
+            <div class="new-photo-heading">Neue Fotos vor dem Speichern</div>
             <div class="photo-preview-grid" id="activityPhotoPreview"></div>
           </div>
         `;
@@ -319,6 +325,42 @@ function openForm(type, preset = {}, options = {}) {
     .join("");
 
   $("#formDialog").showModal();
+
+  if (type === "activity" && Array.isArray(preset.photos) && preset.photos.length) {
+    renderSavedActivityPhotos(preset.photos);
+  }
+}
+
+async function renderSavedActivityPhotos(photos = []) {
+  const grid = $("#activitySavedPhotoGrid");
+  if (!grid) return;
+
+  try {
+    const storedPhotos = await window.crmPhotoStorage.getPhotoUrls(photos);
+
+    // Das Formular könnte während des asynchronen Ladens bereits geschlossen
+    // oder für einen anderen Datensatz neu aufgebaut worden sein.
+    const currentGrid = $("#activitySavedPhotoGrid");
+    if (!currentGrid || currentGrid !== grid) return;
+
+    currentGrid.innerHTML = storedPhotos
+      .map((photo) => photo.url ? `
+        <a class="stored-photo-card" href="${photo.url}" target="_blank" rel="noopener">
+          <img src="${photo.url}" alt="${photo.name || "Kontaktfoto"}" loading="lazy">
+          <span>
+            ${photo.name || "Foto"}
+            <small>${window.crmPhotoStorage.formatBytes(photo.size || 0)}</small>
+          </span>
+        </a>
+      ` : "")
+      .join("") || '<div class="photo-loading">Die gespeicherten Fotos konnten nicht geladen werden.</div>';
+  } catch (error) {
+    console.error("Loading saved activity photos in form failed:", error);
+    const currentGrid = $("#activitySavedPhotoGrid");
+    if (currentGrid === grid) {
+      currentGrid.innerHTML = '<div class="photo-loading">Die gespeicherten Fotos konnten nicht geladen werden.</div>';
+    }
+  }
 }
 
 async function saveForm(type, values, options = {}) {
