@@ -95,6 +95,7 @@ const formConfigs = {
       ["note", "Kurznotiz", "textarea"],
       ["handNote", "Handschriftliche Notiz", "hand"],
       ["photos", "Fotos", "photos"],
+      ["documents", "Dokumente", "documents"],
     ],
   },
 
@@ -181,6 +182,7 @@ function assertCustomerMayReceiveNewRecord(
 
 function openForm(type, preset = {}, options = {}) {
   window.crmPhotoStorage?.resetPendingPhotos();
+  window.crmDocumentStorage?.resetPendingDocuments();
 
   const config = formConfigs[type];
   const mode = options.mode || "create";
@@ -283,6 +285,31 @@ function openForm(type, preset = {}, options = {}) {
             <div class="photo-preview-grid" id="activityPhotoPreview"></div>
           </div>
         `;
+      } else if (input === "documents") {
+        const savedDocuments = Array.isArray(preset.documents) ? preset.documents : [];
+        control = `
+          <div class="document-picker">
+            <input
+              class="document-input"
+              id="activityDocumentInput"
+              type="file"
+              accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.txt,.csv,.rtf,.odt,.ods,.odp"
+              multiple
+            >
+            <label class="secondary-button document-picker-button" for="activityDocumentInput">
+              📎 Dokumente auswählen
+            </label>
+            <small>Bis zu 10 neue Dokumente mit jeweils maximal 10 MB.</small>
+            ${savedDocuments.length ? `
+              <div class="saved-document-note">Bereits gespeichert: ${savedDocuments.length} Dokument${savedDocuments.length === 1 ? "" : "e"}</div>
+              <div class="saved-document-list" id="activitySavedDocumentList">
+                <div class="document-loading">Gespeicherte Dokumente werden geladen …</div>
+              </div>
+            ` : ""}
+            <div class="new-document-heading">Neue Dokumente vor dem Speichern</div>
+            <div class="document-preview-list" id="activityDocumentPreview"></div>
+          </div>
+        `;
       } else if (input === "hand") {
         control = `
           <input
@@ -315,7 +342,7 @@ function openForm(type, preset = {}, options = {}) {
 
       return `
         <div class="field ${
-          input === "textarea" || input === "hand" || input === "photos" ? "full" : ""
+          input === "textarea" || input === "hand" || input === "photos" || input === "documents" ? "full" : ""
         }">
           <label>${label}</label>
           ${control}
@@ -328,6 +355,9 @@ function openForm(type, preset = {}, options = {}) {
 
   if (type === "activity" && Array.isArray(preset.photos) && preset.photos.length) {
     renderSavedActivityPhotos(preset.photos);
+  }
+  if (type === "activity" && Array.isArray(preset.documents) && preset.documents.length) {
+    renderSavedActivityDocuments(preset.documents);
   }
 }
 
@@ -360,6 +390,33 @@ async function renderSavedActivityPhotos(photos = []) {
     if (currentGrid === grid) {
       currentGrid.innerHTML = '<div class="photo-loading">Die gespeicherten Fotos konnten nicht geladen werden.</div>';
     }
+  }
+}
+
+
+async function renderSavedActivityDocuments(documents = []) {
+  const list = $("#activitySavedDocumentList");
+  if (!list) return;
+
+  try {
+    const storedDocuments = await window.crmDocumentStorage.getDocumentUrls(documents);
+    const currentList = $("#activitySavedDocumentList");
+    if (!currentList || currentList !== list) return;
+
+    currentList.innerHTML = storedDocuments.map((document) => document.url ? `
+      <a class="stored-document-card" href="${document.url}" target="_blank" rel="noopener" download="${document.downloadName || document.name || "Dokument"}">
+        <span class="document-icon">📄</span>
+        <span class="document-details">
+          <strong>${document.name || "Dokument"}</strong>
+          <small>${window.crmDocumentStorage.formatBytes(document.size || 0)}</small>
+        </span>
+        <span class="document-open-label">Öffnen</span>
+      </a>
+    ` : "").join("") || '<div class="document-loading">Die gespeicherten Dokumente konnten nicht geladen werden.</div>';
+  } catch (error) {
+    console.error("Loading saved activity documents in form failed:", error);
+    const currentList = $("#activitySavedDocumentList");
+    if (currentList) currentList.innerHTML = '<div class="document-loading">Die gespeicherten Dokumente konnten nicht geladen werden.</div>';
   }
 }
 
@@ -492,11 +549,20 @@ async function saveActivity(values, mode, recordId, options = {}) {
       },
     ) || [];
 
+    const uploadedDocuments = await window.crmDocumentStorage?.uploadPendingDocuments(
+      activity.id,
+      (current, total) => {
+        const saveButton = $("#dialogSaveButton");
+        if (saveButton) saveButton.textContent = `Dokument ${current} von ${total} wird gespeichert …`;
+      },
+    ) || [];
+
     const updatedActivity = {
       ...activity,
       ...values,
       id: activity.id,
       photos: [...(activity.photos || []), ...uploadedPhotos],
+      documents: [...(activity.documents || []), ...uploadedDocuments],
     };
 
     return window.crmFirestore.updateActivity(
@@ -523,10 +589,19 @@ async function saveActivity(values, mode, recordId, options = {}) {
     },
   ) || [];
 
+  const uploadedDocuments = await window.crmDocumentStorage?.uploadPendingDocuments(
+    activityId,
+    (current, total) => {
+      const saveButton = $("#dialogSaveButton");
+      if (saveButton) saveButton.textContent = `Dokument ${current} von ${total} wird gespeichert …`;
+    },
+  ) || [];
+
   const activity = {
     ...values,
     id: activityId,
     photos: uploadedPhotos,
+    documents: uploadedDocuments,
     ...(sourceAppointmentId
       ? {
           sourceAppointmentId,

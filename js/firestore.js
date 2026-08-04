@@ -436,6 +436,17 @@ async function createActivity(activity, context) {
     });
   });
 
+  (activity.documents || []).forEach((document) => {
+    addHistory(batch, {
+      entityType: "activity",
+      entityId: activity.id,
+      customerId: activity.customerId,
+      action: "document-uploaded",
+      summary: `Dokument „${document.name || "Dokument"}“ hochgeladen`,
+      snapshot: document,
+    });
+  });
+
   if (context.followup) {
     addEntityWrite(batch, {
       collectionName: "followups",
@@ -486,6 +497,20 @@ async function updateActivity(before, after, context) {
         action: "photo-uploaded",
         summary: `Foto „${photo.name || "Kontaktfoto"}“ hochgeladen`,
         snapshot: photo,
+      });
+    });
+
+  const oldDocumentPaths = new Set((before.documents || []).map((document) => document.path));
+  (after.documents || [])
+    .filter((document) => !oldDocumentPaths.has(document.path))
+    .forEach((document) => {
+      addHistory(batch, {
+        entityType: "activity",
+        entityId: after.id,
+        customerId: after.customerId,
+        action: "document-uploaded",
+        summary: `Dokument „${document.name || "Dokument"}“ hochgeladen`,
+        snapshot: document,
       });
     });
 

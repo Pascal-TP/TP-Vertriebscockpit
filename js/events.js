@@ -158,6 +158,11 @@ function handleActionButton(button) {
     return;
   }
 
+  if (action === "open-activity-documents") {
+    openActivityDocuments(recordId);
+    return;
+  }
+
   openForm(action, {
     customerId: recordId,
   });
@@ -186,16 +191,29 @@ function bindAppointmentEvents() {
 
 function bindFormEvents() {
   $("#dynamicForm").addEventListener("change", async (event) => {
-    if (!event.target.classList.contains("photo-input")) return;
+    if (event.target.classList.contains("photo-input")) {
+      try {
+        await window.crmPhotoStorage.addPhotoFiles(event.target.files);
+        renderPendingPhotoPreviews();
+      } catch (error) {
+        console.error("Photo selection failed:", error);
+        toast(error?.message || "Das Foto konnte nicht ausgewählt werden.");
+      } finally {
+        event.target.value = "";
+      }
+      return;
+    }
 
-    try {
-      await window.crmPhotoStorage.addPhotoFiles(event.target.files);
-      renderPendingPhotoPreviews();
-    } catch (error) {
-      console.error("Photo selection failed:", error);
-      toast(error?.message || "Das Foto konnte nicht ausgewählt werden.");
-    } finally {
-      event.target.value = "";
+    if (event.target.classList.contains("document-input")) {
+      try {
+        window.crmDocumentStorage.addDocumentFiles(event.target.files);
+        renderPendingDocumentPreviews();
+      } catch (error) {
+        console.error("Document selection failed:", error);
+        toast(error?.message || "Das Dokument konnte nicht ausgewählt werden.");
+      } finally {
+        event.target.value = "";
+      }
     }
   });
 
@@ -204,6 +222,13 @@ function bindFormEvents() {
     if (removePhotoButton) {
       window.crmPhotoStorage.removePendingPhoto(removePhotoButton.dataset.removePendingPhoto);
       renderPendingPhotoPreviews();
+      return;
+    }
+
+    const removeDocumentButton = event.target.closest("[data-remove-pending-document]");
+    if (removeDocumentButton) {
+      window.crmDocumentStorage.removePendingDocument(removeDocumentButton.dataset.removePendingDocument);
+      renderPendingDocumentPreviews();
       return;
     }
 
@@ -278,6 +303,29 @@ function renderPendingPhotoPreviews() {
         title="Foto entfernen"
       >×</button>
     </figure>
+  `).join("");
+}
+
+function renderPendingDocumentPreviews() {
+  const container = $("#activityDocumentPreview");
+  if (!container || !window.crmDocumentStorage) return;
+
+  const documents = window.crmDocumentStorage.getPendingDocuments();
+  container.innerHTML = documents.map((document) => `
+    <div class="document-preview-card">
+      <span class="document-icon">📄</span>
+      <span class="document-details">
+        <strong>${document.file.name}</strong>
+        <small>${window.crmDocumentStorage.formatBytes(document.file.size)}</small>
+      </span>
+      <button
+        type="button"
+        class="document-remove-button"
+        data-remove-pending-document="${document.id}"
+        aria-label="Dokument entfernen"
+        title="Dokument entfernen"
+      >×</button>
+    </div>
   `).join("");
 }
 

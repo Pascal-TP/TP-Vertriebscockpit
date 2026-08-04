@@ -38,6 +38,11 @@ function renderActivities() {
                 : ""
             }
             ${
+              Array.isArray(activity.documents) && activity.documents.length
+                ? `<br><button class="attachment-count-button" data-action="open-activity-documents" data-id="${activity.id}">📎 Dokumente: ${activity.documents.length}</button>`
+                : ""
+            }
+            ${
               activity.handNote
                 ? '<br><span class="tag">Handnotiz vorhanden</span>'
                 : ""
@@ -204,5 +209,41 @@ async function openActivityPhotos(activityId) {
   } catch (error) {
     console.error("Loading activity photos failed:", error);
     grid.innerHTML = '<div class="photo-loading">Die Fotos konnten nicht geladen werden.</div>';
+  }
+}
+
+
+async function openActivityDocuments(activityId) {
+  const activity = activityById(activityId);
+  if (!activity?.documents?.length) {
+    toast("Für diesen Kontakt sind keine Dokumente gespeichert.");
+    return;
+  }
+
+  const dialog = $("#activityDocumentsDialog");
+  const list = $("#activityDocumentsList");
+  const title = $("#activityDocumentsTitle");
+  if (!dialog || !list || !title) {
+    toast("Die Dokumentenansicht konnte nicht geöffnet werden.");
+    return;
+  }
+
+  const customer = customerById(activity.customerId);
+  title.textContent = `Dokumente – ${customer?.name || "Kontakt"}`;
+  list.innerHTML = '<div class="document-loading">Dokumente werden geladen …</div>';
+  dialog.showModal();
+
+  try {
+    const documents = await window.crmDocumentStorage.getDocumentUrls(activity.documents);
+    list.innerHTML = documents.map((document) => document.url ? `
+      <a class="stored-document-card" href="${document.url}" target="_blank" rel="noopener" download="${document.downloadName || document.name || "Dokument"}">
+        <span class="document-icon">📄</span>
+        <span class="document-details"><strong>${document.name || "Dokument"}</strong><small>${window.crmDocumentStorage.formatBytes(document.size || 0)}</small></span>
+        <span class="document-open-label">Öffnen</span>
+      </a>
+    ` : "").join("") || '<div class="document-loading">Die Dokumente konnten nicht geladen werden.</div>';
+  } catch (error) {
+    console.error("Loading activity documents failed:", error);
+    list.innerHTML = '<div class="document-loading">Die Dokumente konnten nicht geladen werden.</div>';
   }
 }
