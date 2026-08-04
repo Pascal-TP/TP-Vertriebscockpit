@@ -863,6 +863,25 @@
       </div>
     </dialog>
 
+
+    <dialog id="activityDocumentsDialog" class="activity-documents-dialog">
+      <div class="dialog-header">
+        <div>
+          <h2 id="activityDocumentsTitle">Dokumente</h2>
+          <p>Gespeicherte Dokumente dieses Kontakts</p>
+        </div>
+        <form method="dialog">
+          <button class="icon-button" aria-label="Dokumentenansicht schließen">×</button>
+        </form>
+      </div>
+      <div class="activity-documents-list" id="activityDocumentsList"></div>
+      <div class="dialog-footer">
+        <form method="dialog">
+          <button class="secondary-button">Schließen</button>
+        </form>
+      </div>
+    </dialog>
+
     <dialog id="noteDialog" class="note-dialog">
       <div class="dialog-header">
         <div>
@@ -1058,6 +1077,7 @@
     <script src="js/app.js"></script>
 
     <script type="module" src="js/photo-storage.js"></script>
+    <script type="module" src="js/document-storage.js"></script>
     <script type="module" src="js/auth.js"></script>
   </body>
 </html>
