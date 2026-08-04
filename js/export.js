@@ -14,6 +14,8 @@ const exportCustomerHeaders = [
   ["Außendienst", "owner"],
   ["Potenzial", "potential"],
   ["Pipeline", "pipeline"],
+  ["Umsatz", "revenue"],
+  ["Umsatzstand", "revenueAsOf"],
   ["Gewerke", "trades"],
   ["Kurznotiz", "note"],
   ["Letzter Kontakt", "lastContact"],
@@ -100,7 +102,7 @@ function customerExportRows(customers) {
         return csvExportDateTime(customer[field]);
       }
 
-      if (["lastContact", "nextAppointment", "archivedAt"].includes(field)) {
+      if (["lastContact", "nextAppointment", "archivedAt", "revenueAsOf"].includes(field)) {
         return csvExportDate(customer[field]);
       }
 
@@ -460,6 +462,7 @@ function renderExportView() {
   if (!$("#view-export")) return;
 
   fillExportOwnerSelects();
+  fillRevenueOwnerSelect();
 
   $("#exportCountExisting").textContent = data.customers.filter(
     (customer) =>
@@ -489,6 +492,8 @@ function renderExportView() {
   $("#appointmentExportCount").textContent =
     `${appointmentCount} Termin${appointmentCount === 1 ? "" : "e"} entsprechen dem Filter`;
 
+  renderRevenueRankingCount();
+
   $("#activityExportCount").textContent =
     `${activityCount} Kontakt${activityCount === 1 ? "" : "e"} entsprechen dem Filter`;
 
@@ -511,6 +516,7 @@ function bindExportEvents() {
 
   $("#exportAppointmentsButton").onclick = exportAppointments;
   $("#exportActivitiesButton").onclick = exportActivities;
+  $("#exportRevenueRankingButton").onclick = exportRevenueRanking;
 
   [
     "appointmentExportPeriod",
@@ -521,6 +527,7 @@ function bindExportEvents() {
     "activityExportOwner",
     "activityExportFrom",
     "activityExportTo",
+    "revenueExportOwner",
   ].forEach((id) => {
     const element = $("#" + id);
 

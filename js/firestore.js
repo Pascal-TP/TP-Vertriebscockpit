@@ -813,6 +813,28 @@ async function permanentlyDeleteCustomer(customer, relatedRecords) {
   await batch.commit();
 }
 
+async function importCustomerRevenues(updates, revenueAsOf) {
+  const valid = Array.isArray(updates) ? updates.filter((item) => item?.customer?.id) : [];
+  for (let index = 0; index < valid.length; index += 150) {
+    const chunk = valid.slice(index, index + 150);
+    const batch = writeBatch(crmDb);
+    chunk.forEach(({ customer, revenue, csvName }) => {
+      const after = { ...customer, revenue, revenueAsOf: revenueAsOf || "" };
+      addEntityWrite(batch, {
+        collectionName: "customers",
+        entityId: customer.id,
+        data: { revenue, revenueAsOf: revenueAsOf || "" },
+        action: "revenue-imported",
+        customerId: customer.id,
+        summary: `Umsatz für „${customer.name || csvName || customer.id}“ aktualisiert`,
+        changes: buildChanges(customer, after),
+        snapshot: after,
+      });
+    });
+    await batch.commit();
+  }
+}
+
 async function importCustomers(customers, action = "imported") {
   await importRecords("customers", customers, action);
 }
@@ -1197,6 +1219,7 @@ window.crmFirestore = {
   updateFollowup,
   deleteFollowupRecord,
   importCustomers,
+  importCustomerRevenues,
   loadCustomerHistory,
   subscribeGlobalHistory,
   loadCurrentUserProfile,

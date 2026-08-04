@@ -29,6 +29,8 @@ const formConfigs = {
         ["A – sehr hoch", "B – hoch", "C – mittel", "D – gering"],
       ],
       ["pipeline", "Pipeline", "select", pipelineStages],
+      ["revenue", "Umsatz (€)", "number"],
+      ["revenueAsOf", "Umsatzstand", "date"],
       ["trades", "Gewerke (kommagetrennt)", "text"],
       ["note", "Kurznotiz", "textarea"],
     ],
@@ -468,6 +470,9 @@ async function saveForm(type, values, options = {}) {
 }
 
 async function saveCustomer(values, mode, recordId) {
+  values.revenue = normalizeRevenueInput(values.revenue);
+  values.revenueAsOf = values.revenueAsOf || "";
+
   values.trades = (values.trades || "")
     .split(",")
     .map((trade) => trade.trim())
@@ -519,6 +524,8 @@ async function saveCustomer(values, mode, recordId) {
     nextAppointment: "",
     archived: false,
     archivedAt: "",
+    revenue: values.revenue || 0,
+    revenueAsOf: values.revenueAsOf || "",
   };
 
   await window.crmFirestore.createCustomer(customer);

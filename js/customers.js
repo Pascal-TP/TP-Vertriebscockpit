@@ -301,6 +301,12 @@ function renderCustomerDetail(id) {
           <strong>${customer.potential || "–"}</strong>
         </div>
 
+        <div class="info-cell revenue-info-cell">
+          <small>Umsatz</small>
+          <strong>${formatRevenue(customer.revenue)}</strong>
+          <span>${customer.revenueAsOf ? `Stand: ${formatDate(customer.revenueAsOf)}` : "Stand nicht angegeben"}</span>
+        </div>
+
         <div class="info-cell">
           <small>Letzter Kontakt</small>
           <strong>${formatDate(customer.lastContact)}</strong>
