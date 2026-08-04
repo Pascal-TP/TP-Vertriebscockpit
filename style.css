@@ -3098,3 +3098,128 @@ body.backup-busy {
     }
     .customer-followup-actions { justify-content: flex-start; }
 }
+
+/* ==========================
+   V2.11.0: Kommende Termine in der Kundenkartei
+========================== */
+.customer-appointment-section {
+    margin-top: 4px;
+    margin-bottom: 18px;
+}
+
+.customer-appointment-heading {
+    align-items: flex-start;
+    margin-bottom: 12px;
+}
+
+.customer-appointment-heading .section-title {
+    margin-bottom: 3px;
+}
+
+.customer-appointment-list {
+    display: grid;
+    gap: 10px;
+}
+
+.customer-appointment-card {
+    display: grid;
+    grid-template-columns: 112px minmax(0, 1fr);
+    gap: 14px;
+    padding: 14px;
+    border: 1px solid var(--line);
+    border-radius: 13px;
+    background: #fff;
+}
+
+.customer-appointment-date {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding-right: 13px;
+    border-right: 1px solid var(--line);
+}
+
+.customer-appointment-date strong {
+    font-size: .8rem;
+}
+
+.customer-appointment-date small,
+.customer-appointment-footer > small {
+    color: var(--muted);
+    font-size: .68rem;
+    overflow-wrap: anywhere;
+}
+
+.customer-appointment-content {
+    min-width: 0;
+}
+
+.customer-appointment-title-row,
+.customer-appointment-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.customer-appointment-title-row h4 {
+    margin: 0;
+    font-size: .84rem;
+    overflow-wrap: anywhere;
+}
+
+.customer-appointment-content > p {
+    margin: 7px 0 0;
+    color: var(--muted);
+    font-size: .76rem;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.customer-appointment-empty-note {
+    font-style: italic;
+}
+
+.customer-appointment-footer {
+    margin-top: 12px;
+}
+
+.customer-appointment-actions {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 8px;
+}
+
+.empty-customer-appointments {
+    margin: 0;
+    padding: 14px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    color: var(--muted);
+    font-size: .76rem;
+}
+
+@media (max-width: 700px) {
+    .customer-appointment-card {
+        grid-template-columns: 1fr;
+    }
+
+    .customer-appointment-date {
+        padding-right: 0;
+        padding-bottom: 9px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .customer-appointment-title-row,
+    .customer-appointment-footer {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .customer-appointment-actions {
+        justify-content: flex-start;
+    }
+}
