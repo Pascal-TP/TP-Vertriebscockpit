@@ -2659,11 +2659,22 @@ body.backup-busy {
   cursor: pointer;
 }
 .photo-picker small,
-.saved-photo-note {
+.saved-photo-note,
+.new-photo-heading {
   color: var(--muted);
   font-size: .74rem;
 }
+.new-photo-heading {
+  margin-top: 4px;
+  font-weight: 700;
+}
+.saved-photo-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 12px;
+}
 .photo-preview-grid,
+.saved-photo-grid,
 .activity-photos-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
@@ -2741,5 +2752,6 @@ body.backup-busy {
 @media (max-width: 640px) {
   .photo-picker-button { width: 100%; justify-content: center; }
   .photo-preview-grid,
+  .saved-photo-grid,
   .activity-photos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
