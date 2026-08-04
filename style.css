@@ -3223,3 +3223,6 @@ body.backup-busy {
         justify-content: flex-start;
     }
 }
+
+
+.revenue-info-cell span{display:block;margin-top:.25rem;color:var(--muted);font-size:.78rem}.revenue-info-cell strong{font-size:1.08rem}.revenue-import-card input[type="date"]{width:100%}.revenue-preview-card{min-width:0}.revenue-ranking-card{grid-column:1/-1}

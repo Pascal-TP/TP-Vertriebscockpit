@@ -719,11 +719,39 @@
                 </button>
               </div>
             </article>
+
+            <article class="card export-card revenue-ranking-card">
+              <div class="export-card-heading">
+                <div class="export-icon">€</div>
+                <div><h2>Umsatz-Rangliste</h2><p>Kunden eines Außendienstmitarbeiters nach Umsatz sortiert exportieren.</p></div>
+              </div>
+              <div class="export-filter-grid">
+                <label>Außendienst<select id="revenueExportOwner"></select></label>
+              </div>
+              <div class="export-action-row">
+                <span id="revenueExportCount">0 Kunden mit Umsatz</span>
+                <button class="primary-button" id="exportRevenueRankingButton" type="button">Rangliste herunterladen</button>
+              </div>
+            </article>
           </div>
         </section>
 
         <section class="view" id="view-import">
           <div class="import-grid">
+            <article class="card import-card revenue-import-card">
+              <div class="upload-icon">€</div>
+              <h2>Umsatzzahlen importieren</h2>
+              <p>CSV-Spalten: <strong>Kundennummer, Name, Umsatz</strong>. Die Zuordnung erfolgt über die Kundennummer.</p>
+              <label>Umsatzstand<input type="date" id="revenueImportAsOf"></label>
+              <label class="file-drop"><input type="file" id="revenueCsvFile" accept=".csv,text/csv"><strong>Umsatz-CSV auswählen</strong><span id="revenueFileName">oder hier ablegen</span></label>
+              <button class="primary-button" id="previewRevenueImportButton" disabled>Vorschau anzeigen</button>
+            </article>
+            <article class="card revenue-preview-card">
+              <div class="card-heading"><div><h2>Umsatzvorschau</h2><p id="revenueImportSummary">Noch keine Umsatzdatei ausgewählt</p></div></div>
+              <div class="table-scroll"><table id="revenueImportPreview"><thead></thead><tbody></tbody></table></div>
+              <button class="primary-button hidden" id="confirmRevenueImportButton">Zugeordnete Umsätze übernehmen</button>
+            </article>
+
             <article class="card import-card">
               <div class="upload-icon">⇧</div>
               <h2>Kundenlisten importieren</h2>
@@ -1072,6 +1100,7 @@
     <script src="js/maps.js"></script>
     <script src="js/import.js"></script>
     <script src="js/export.js"></script>
+    <script src="js/revenue.js"></script>
     <script src="js/canvas.js"></script>
     <script src="js/events.js"></script>
     <script src="js/app.js"></script>
