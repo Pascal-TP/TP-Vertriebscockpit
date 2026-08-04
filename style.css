@@ -2638,3 +2638,108 @@ body.backup-busy {
         flex-direction: column;
     }
 }
+
+
+/* Kontaktfotos */
+.photo-picker {
+  display: grid;
+  gap: 10px;
+}
+.photo-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+.photo-picker-button {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  cursor: pointer;
+}
+.photo-picker small,
+.saved-photo-note {
+  color: var(--muted);
+  font-size: .74rem;
+}
+.photo-preview-grid,
+.activity-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(145px, 1fr));
+  gap: 12px;
+}
+.photo-preview-card,
+.stored-photo-card {
+  position: relative;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: #fff;
+}
+.photo-preview-card img,
+.stored-photo-card img {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  object-fit: cover;
+}
+.photo-preview-card figcaption,
+.stored-photo-card span {
+  display: grid;
+  gap: 2px;
+  padding: 8px;
+  font-size: .7rem;
+  overflow-wrap: anywhere;
+}
+.photo-preview-card figcaption span {
+  color: var(--muted);
+}
+.photo-remove-button {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 28px;
+  height: 28px;
+  border: 0;
+  border-radius: 50%;
+  background: rgba(140, 25, 25, .92);
+  color: #fff;
+  font-size: 1.2rem;
+  line-height: 1;
+  cursor: pointer;
+}
+.attachment-count-button {
+  margin-top: 7px;
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  padding: 5px 9px;
+  background: #f7fafb;
+  color: var(--blue);
+  cursor: pointer;
+  font-size: .72rem;
+}
+.activity-photos-dialog {
+  width: min(980px, calc(100vw - 24px));
+}
+.activity-photos-grid {
+  padding: 20px;
+  max-height: 68vh;
+  overflow: auto;
+}
+.stored-photo-card {
+  color: inherit;
+  text-decoration: none;
+}
+.photo-loading {
+  grid-column: 1 / -1;
+  padding: 30px;
+  text-align: center;
+  color: var(--muted);
+}
+@media (max-width: 640px) {
+  .photo-picker-button { width: 100%; justify-content: center; }
+  .photo-preview-grid,
+  .activity-photos-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
