@@ -33,6 +33,7 @@ function bindDashboardEvents() {
 
 function bindCustomerEvents() {
   $("#customerOwnerFilter").onchange = renderCustomers;
+  $("#customerGroupFilter").onchange = renderCustomers;
   $("#customerSearch").oninput = renderCustomers;
 
   $("#customerTypeFilter").onclick = (event) => {
@@ -594,6 +595,7 @@ function bindImportEvents() {
       "email",
       "phone",
       "mobile",
+      "customerGroup",
       "importStatus",
     ];
 

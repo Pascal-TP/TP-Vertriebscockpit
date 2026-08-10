@@ -3,6 +3,7 @@
 function renderCustomers() {
   const filter = $("#customerTypeFilter .active")?.dataset.value || "all";
   const owner = $("#customerOwnerFilter").value || "all";
+  const customerGroup = $("#customerGroupFilter")?.value || "all";
   const query = $("#customerSearch").value.toLowerCase();
 
   const list = data.customers.filter((customer) => {
@@ -19,12 +20,16 @@ function renderCustomers() {
     const matchesOwner =
       owner === "all" || customer.owner === owner;
 
+    const matchesCustomerGroup =
+      customerGroup === "all" || customer.customerGroup === customerGroup;
+
     const matchesSearch = [
       customer.customerNumber,
       customer.name,
       customer.city,
       customer.contact,
       customer.zip,
+      customer.customerGroup,
     ]
       .join(" ")
       .toLowerCase()
@@ -34,6 +39,7 @@ function renderCustomers() {
       matchesArchiveFilter &&
       matchesType &&
       matchesOwner &&
+      matchesCustomerGroup &&
       matchesSearch
     );
   });
@@ -274,6 +280,11 @@ function renderCustomerDetail(id) {
         <div class="info-cell">
           <small>Kundennummer</small>
           <strong>${customer.customerNumber || "–"}</strong>
+        </div>
+
+        <div class="info-cell">
+          <small>Kundengruppe</small>
+          <strong>${customer.customerGroup || "–"}</strong>
         </div>
 
         <div class="info-cell">
@@ -715,7 +726,8 @@ function historyActionLabel(action) {
 function renderHistoryChanges(changes = {}) {
   const labels = {
     name: "Firma / Kundenname",
-    type: "Kundengruppe",
+    type: "Kundenstatus",
+    customerGroup: "Kundengruppe",
     street: "Straße",
     zip: "PLZ",
     city: "Ort",

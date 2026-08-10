@@ -2,7 +2,8 @@
 
 const exportCustomerHeaders = [
   ["Kundennummer", "customerNumber"],
-  ["Kundengruppe", "type"],
+  ["Kundenstatus", "type"],
+  ["Kundengruppe", "customerGroup"],
   ["Firma / Kundenname", "name"],
   ["Straße", "street"],
   ["PLZ", "zip"],

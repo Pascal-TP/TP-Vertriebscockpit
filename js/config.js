@@ -2,6 +2,24 @@
 
 const STORAGE_KEY = "tp-vertriebscockpit-demo-v1";
 const owners = [];
+const customerGroups = [
+  "Händler",
+  "Hersteller",
+  "Bauunternehmer",
+  "Autohaus",
+  "SHK",
+  "Estrichleger",
+  "Privat",
+  "Zimmerei-Tischlerei",
+  "Elektro",
+  "Sonstiges",
+  "Bodenleger",
+  "Photovoltaik",
+  "Subunternehmer",
+  "Bauträger - Immobiliengesellschaft",
+  "Planer - Architekt",
+  "TP Holding Gruppe",
+];
 
 function refreshOwners() {
   const names = new Set();

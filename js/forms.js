@@ -10,7 +10,7 @@ const formConfigs = {
       ["name", "Firma / Kundenname", "text", true],
       [
         "type",
-        "Kundengruppe",
+        "Kundenstatus",
         "select",
         ["Bestandskunde", "Interessent", "Kaltakquise"],
       ],
@@ -20,6 +20,7 @@ const formConfigs = {
       ["contact", "Ansprechpartner", "text"],
       ["phone", "Telefon", "tel"],
       ["mobile", "Mobil", "tel"],
+      ["customerGroup", "Kundengruppe", "select", ["", ...customerGroups]],
       ["email", "E-Mail", "email"],
       ["owner", "Außendienst", "select", owners],
       [

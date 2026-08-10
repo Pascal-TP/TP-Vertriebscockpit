@@ -11,6 +11,7 @@ const IMPORT_COLUMN_LABELS = {
   email: "E-Mail",
   phone: "Festnetz",
   mobile: "Mobil",
+  customerGroup: "Kundengruppe",
   importStatus: "Prüfung",
 };
 
@@ -155,6 +156,7 @@ function mapImport(rows, type) {
         email: importValue(row, ["E-Mail", "Email", "Mail"]),
         phone: importValue(row, ["Festnetz", "Telefon", "Tel"]),
         mobile: importValue(row, ["Mobil", "Mobiltelefon", "Handy"]),
+        customerGroup: importValue(row, ["Kundengruppe", "Kunden-Gruppe", "Kundengruppe CRM"]),
         owner: "",
         pipeline: defaultPipelineForImportType(type),
         potential: "",
