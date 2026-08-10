@@ -265,6 +265,25 @@
               ><button data-value="archived">Archiviert</button>
             </div>
             <div class="toolbar-actions">
+              <select id="customerGroupFilter">
+                <option value="all">Alle Kundengruppen</option>
+                <option value="Händler">Händler</option>
+                <option value="Hersteller">Hersteller</option>
+                <option value="Bauunternehmer">Bauunternehmer</option>
+                <option value="Autohaus">Autohaus</option>
+                <option value="SHK">SHK</option>
+                <option value="Estrichleger">Estrichleger</option>
+                <option value="Privat">Privat</option>
+                <option value="Zimmerei-Tischlerei">Zimmerei-Tischlerei</option>
+                <option value="Elektro">Elektro</option>
+                <option value="Sonstiges">Sonstiges</option>
+                <option value="Bodenleger">Bodenleger</option>
+                <option value="Photovoltaik">Photovoltaik</option>
+                <option value="Subunternehmer">Subunternehmer</option>
+                <option value="Bauträger - Immobiliengesellschaft">Bauträger - Immobiliengesellschaft</option>
+                <option value="Planer - Architekt">Planer - Architekt</option>
+                <option value="TP Holding Gruppe">TP Holding Gruppe</option>
+              </select>
               <select id="customerOwnerFilter">
                 <option value="all">Alle Außendienstmitarbeiter</option>
               </select>
@@ -756,12 +775,12 @@
               <div class="upload-icon">⇧</div>
               <h2>Kundenlisten importieren</h2>
               <p>
-                CSV-Datei auswählen und einer Kundengruppe zuordnen. Neue
+                CSV-Datei auswählen und einem Kundenstatus zuordnen. Die Kundengruppe wird aus der CSV übernommen. Neue
                 Datensätze werden ergänzt; vorhandene Kunden werden niemals
                 überschrieben.
               </p>
               <label
-                >Kundengruppe für neue Datensätze<select id="importType">
+                >Kundenstatus für neue Datensätze<select id="importType">
                   <option>Bestandskunde</option>
                   <option>Interessent</option>
                   <option>Kaltakquise</option>
