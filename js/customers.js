@@ -111,6 +111,178 @@ function customerListItem(customer) {
   `;
 }
 
+
+function customerRevenueHistory(customer) {
+  const byDate = new Map();
+
+  if (Array.isArray(customer?.revenueHistory)) {
+    customer.revenueHistory.forEach((entry) => {
+      const asOf = String(entry?.asOf || "").slice(0, 10);
+      const revenue = Number(entry?.revenue);
+      if (!asOf || !Number.isFinite(revenue)) return;
+      byDate.set(asOf, { ...entry, asOf, revenue });
+    });
+  }
+
+  // Bestehende Kunden aus Versionen vor der Umsatzhistorie bleiben sofort sichtbar.
+  const currentAsOf = String(customer?.revenueAsOf || "").slice(0, 10);
+  const currentRevenue = Number(customer?.revenue);
+  if (currentAsOf && Number.isFinite(currentRevenue) && !byDate.has(currentAsOf)) {
+    byDate.set(currentAsOf, {
+      asOf: currentAsOf,
+      revenue: currentRevenue,
+      source: "bestand",
+    });
+  }
+
+  return [...byDate.values()].sort((a, b) => a.asOf.localeCompare(b.asOf));
+}
+
+function revenueHistorySourceLabel(source) {
+  const labels = {
+    "csv-import": "CSV-Import",
+    manual: "Manuell",
+    bestand: "Bisheriger Stand",
+  };
+  return labels[source] || "Gespeichert";
+}
+
+function revenueDevelopmentChart(entries) {
+  if (!entries.length) {
+    return '<div class="revenue-history-empty">Noch keine Umsatzstände mit Datum vorhanden.</div>';
+  }
+
+  const width = 760;
+  const height = 260;
+  const left = 72;
+  const right = 22;
+  const top = 24;
+  const bottom = 48;
+  const plotWidth = width - left - right;
+  const plotHeight = height - top - bottom;
+  const values = entries.map((entry) => entry.revenue);
+  let minValue = Math.min(...values);
+  let maxValue = Math.max(...values);
+
+  if (minValue === maxValue) {
+    const padding = Math.max(Math.abs(maxValue) * 0.1, 1000);
+    minValue = Math.max(0, minValue - padding);
+    maxValue += padding;
+  } else {
+    const padding = (maxValue - minValue) * 0.12;
+    minValue = Math.max(0, minValue - padding);
+    maxValue += padding;
+  }
+
+  const range = maxValue - minValue || 1;
+  const xFor = (index) =>
+    entries.length === 1
+      ? left + plotWidth / 2
+      : left + (plotWidth * index) / (entries.length - 1);
+  const yFor = (value) => top + plotHeight - ((value - minValue) / range) * plotHeight;
+
+  const points = entries
+    .map((entry, index) => `${xFor(index).toFixed(1)},${yFor(entry.revenue).toFixed(1)}`)
+    .join(" ");
+
+  const yTicks = Array.from({ length: 5 }, (_, index) => {
+    const ratio = index / 4;
+    const value = maxValue - range * ratio;
+    const y = top + plotHeight * ratio;
+    return `
+      <line x1="${left}" y1="${y}" x2="${width - right}" y2="${y}" class="revenue-chart-grid"></line>
+      <text x="${left - 10}" y="${y + 4}" text-anchor="end" class="revenue-chart-axis-label">${Math.round(value).toLocaleString("de-DE")}</text>
+    `;
+  }).join("");
+
+  const pointMarkup = entries.map((entry, index) => {
+    const x = xFor(index);
+    const y = yFor(entry.revenue);
+    const dateLabel = formatDate(entry.asOf);
+    return `
+      <circle cx="${x}" cy="${y}" r="5" class="revenue-chart-point">
+        <title>${dateLabel}: ${formatRevenue(entry.revenue)}</title>
+      </circle>
+      <text x="${x}" y="${height - 18}" text-anchor="middle" class="revenue-chart-axis-label revenue-chart-date-label">${dateLabel}</text>
+    `;
+  }).join("");
+
+  return `
+    <div class="revenue-chart-scroll">
+      <svg class="revenue-development-chart" viewBox="0 0 ${width} ${height}" role="img" aria-label="Grafik der Umsatzentwicklung">
+        ${yTicks}
+        <line x1="${left}" y1="${top + plotHeight}" x2="${width - right}" y2="${top + plotHeight}" class="revenue-chart-axis"></line>
+        ${entries.length > 1 ? `<polyline points="${points}" class="revenue-chart-line"></polyline>` : ""}
+        ${pointMarkup}
+      </svg>
+    </div>
+  `;
+}
+
+function renderCustomerRevenueDevelopment(customer) {
+  const entries = customerRevenueHistory(customer);
+  const newest = entries.at(-1);
+  const previous = entries.at(-2);
+  const delta = newest && previous ? newest.revenue - previous.revenue : null;
+  const deltaPercent = previous && previous.revenue !== 0
+    ? (delta / previous.revenue) * 100
+    : null;
+
+  return `
+    <section class="customer-revenue-development-section">
+      <div class="section-title-row revenue-development-heading">
+        <div>
+          <h3 class="section-title">Umsatzentwicklung</h3>
+          <p class="section-subtitle">
+            ${entries.length === 1 ? "1 gespeicherter Umsatzstand" : `${entries.length} gespeicherte Umsatzstände`}
+          </p>
+        </div>
+        ${
+          delta === null
+            ? ""
+            : `<div class="revenue-development-delta ${delta > 0 ? "positive" : delta < 0 ? "negative" : "neutral"}">
+                <small>Veränderung zum vorherigen Stand</small>
+                <strong>${delta > 0 ? "+" : ""}${formatRevenue(delta)}</strong>
+                ${deltaPercent === null ? "" : `<span>${deltaPercent > 0 ? "+" : ""}${deltaPercent.toLocaleString("de-DE", { minimumFractionDigits: 1, maximumFractionDigits: 1 })} %</span>`}
+              </div>`
+        }
+      </div>
+
+      ${revenueDevelopmentChart(entries)}
+
+      <div class="table-scroll revenue-history-table-wrap">
+        <table class="revenue-history-table">
+          <thead>
+            <tr>
+              <th>Stand</th>
+              <th>Umsatz</th>
+              <th>Veränderung</th>
+              <th>Quelle</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${
+              entries.length
+                ? [...entries].reverse().map((entry, reverseIndex, reversed) => {
+                    const originalIndex = entries.length - 1 - reverseIndex;
+                    const prior = originalIndex > 0 ? entries[originalIndex - 1] : null;
+                    const change = prior ? entry.revenue - prior.revenue : null;
+                    return `<tr>
+                      <td>${formatDate(entry.asOf)}</td>
+                      <td><strong>${formatRevenue(entry.revenue)}</strong></td>
+                      <td>${change === null ? "–" : `${change > 0 ? "+" : ""}${formatRevenue(change)}`}</td>
+                      <td>${revenueHistorySourceLabel(entry.source)}</td>
+                    </tr>`;
+                  }).join("")
+                : '<tr><td colspan="4">Noch keine historischen Umsatzstände vorhanden.</td></tr>'
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+  `;
+}
+
 function renderCustomerDetail(id) {
   const customer = customerById(id);
 
@@ -356,6 +528,8 @@ function renderCustomerDetail(id) {
         <h3 class="section-title">Kurznotiz</h3>
         <p>${customer.note || "Keine Notiz vorhanden."}</p>
       </section>
+
+      ${renderCustomerRevenueDevelopment(customer)}
 
       <section class="customer-followup-section">
         <div class="section-title-row customer-followup-heading">

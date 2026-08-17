@@ -32,6 +32,7 @@ const auditIgnoredFields = new Set([
   "updatedAt",
   "updatedByUid",
   "updatedByEmail",
+  "revenueHistory",
 ]);
 
 function actor() {
@@ -304,17 +305,87 @@ function pipelineFromActivityResult(result, currentPipeline) {
   return mapping[result] || currentPipeline || "";
 }
 
+
+function normalizeRevenueHistoryEntries(entries) {
+  if (!Array.isArray(entries)) return [];
+
+  const byDate = new Map();
+
+  entries.forEach((entry) => {
+    const asOf = String(entry?.asOf || "").slice(0, 10);
+    const revenue = Number(entry?.revenue);
+
+    if (!asOf || !Number.isFinite(revenue)) return;
+
+    byDate.set(asOf, {
+      asOf,
+      revenue,
+      recordedAt: entry?.recordedAt || "",
+      recordedByUid: entry?.recordedByUid || "",
+      recordedByEmail: entry?.recordedByEmail || "",
+      source: entry?.source || "",
+    });
+  });
+
+  return [...byDate.values()].sort((a, b) => a.asOf.localeCompare(b.asOf));
+}
+
+function revenueHistoryWithCurrent(customer, revenue, revenueAsOf, source = "manual") {
+  const history = normalizeRevenueHistoryEntries(customer?.revenueHistory);
+  const byDate = new Map(history.map((entry) => [entry.asOf, entry]));
+  const currentActor = actor();
+
+  // Rückwärtskompatibilität: Bestehenden Umsatzstand als ersten historischen
+  // Wert übernehmen, sobald erstmals ein neuer Stand gespeichert wird.
+  const oldAsOf = String(customer?.revenueAsOf || "").slice(0, 10);
+  const oldRevenue = Number(customer?.revenue);
+  if (oldAsOf && Number.isFinite(oldRevenue) && !byDate.has(oldAsOf)) {
+    byDate.set(oldAsOf, {
+      asOf: oldAsOf,
+      revenue: oldRevenue,
+      recordedAt: customer?.updatedAt || customer?.createdAt || "",
+      recordedByUid: customer?.updatedByUid || customer?.createdByUid || "",
+      recordedByEmail: customer?.updatedByEmail || customer?.createdByEmail || "",
+      source: "bestand",
+    });
+  }
+
+  const newAsOf = String(revenueAsOf || "").slice(0, 10);
+  const newRevenue = Number(revenue);
+  if (newAsOf && Number.isFinite(newRevenue)) {
+    byDate.set(newAsOf, {
+      asOf: newAsOf,
+      revenue: newRevenue,
+      recordedAt: new Date().toISOString(),
+      recordedByUid: currentActor.uid,
+      recordedByEmail: currentActor.email,
+      source,
+    });
+  }
+
+  return [...byDate.values()].sort((a, b) => a.asOf.localeCompare(b.asOf));
+}
+
 async function createCustomer(customer) {
   const batch = writeBatch(crmDb);
+  const customerWithRevenueHistory = {
+    ...customer,
+    revenueHistory: revenueHistoryWithCurrent(
+      {},
+      customer.revenue,
+      customer.revenueAsOf,
+      "manual",
+    ),
+  };
 
   addEntityWrite(batch, {
     collectionName: "customers",
     entityId: customer.id,
-    data: customer,
+    data: customerWithRevenueHistory,
     action: "created",
     customerId: customer.id,
     summary: `Kunde „${customer.name || customer.id}“ angelegt`,
-    snapshot: customer,
+    snapshot: customerWithRevenueHistory,
     merge: false,
   });
 
@@ -322,7 +393,23 @@ async function createCustomer(customer) {
 }
 
 async function updateCustomer(before, after) {
-  const changes = buildChanges(before, after);
+  const revenueChanged =
+    Number(before?.revenue || 0) !== Number(after?.revenue || 0) ||
+    String(before?.revenueAsOf || "") !== String(after?.revenueAsOf || "");
+
+  const finalAfter = revenueChanged
+    ? {
+        ...after,
+        revenueHistory: revenueHistoryWithCurrent(
+          before,
+          after.revenue,
+          after.revenueAsOf,
+          "manual",
+        ),
+      }
+    : after;
+
+  const changes = buildChanges(before, finalAfter);
 
   if (!Object.keys(changes).length) {
     return false;
@@ -332,13 +419,13 @@ async function updateCustomer(before, after) {
 
   addEntityWrite(batch, {
     collectionName: "customers",
-    entityId: after.id,
-    data: after,
+    entityId: finalAfter.id,
+    data: finalAfter,
     action: "updated",
-    customerId: after.id,
-    summary: `Kunde „${after.name || after.id}“ bearbeitet`,
+    customerId: finalAfter.id,
+    summary: `Kunde „${finalAfter.name || finalAfter.id}“ bearbeitet`,
     changes,
-    snapshot: after,
+    snapshot: finalAfter,
   });
 
   await batch.commit();
@@ -819,11 +906,22 @@ async function importCustomerRevenues(updates, revenueAsOf) {
     const chunk = valid.slice(index, index + 150);
     const batch = writeBatch(crmDb);
     chunk.forEach(({ customer, revenue, csvName }) => {
-      const after = { ...customer, revenue, revenueAsOf: revenueAsOf || "" };
+      const revenueHistory = revenueHistoryWithCurrent(
+        customer,
+        revenue,
+        revenueAsOf || "",
+        "csv-import",
+      );
+      const after = {
+        ...customer,
+        revenue,
+        revenueAsOf: revenueAsOf || "",
+        revenueHistory,
+      };
       addEntityWrite(batch, {
         collectionName: "customers",
         entityId: customer.id,
-        data: { revenue, revenueAsOf: revenueAsOf || "" },
+        data: { revenue, revenueAsOf: revenueAsOf || "", revenueHistory },
         action: "revenue-imported",
         customerId: customer.id,
         summary: `Umsatz für „${customer.name || csvName || customer.id}“ aktualisiert`,
