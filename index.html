@@ -262,6 +262,7 @@
               ><button data-value="Bestandskunde">Bestandskunden</button
               ><button data-value="Interessent">Interessenten</button
               ><button data-value="Kaltakquise">Kaltakquise</button
+              ><button data-value="Altkunde">Altkunden</button
               ><button data-value="archived">Archiviert</button>
             </div>
             <div class="toolbar-actions">
@@ -615,7 +616,7 @@
                 <div class="export-icon">K</div>
                 <div>
                   <h2>Kundendatenbanken</h2>
-                  <p>Aktive Kunden getrennt nach Kundengruppe exportieren.</p>
+                  <p>Aktive Kunden getrennt nach Kundenstatus exportieren.</p>
                 </div>
               </div>
 
@@ -623,6 +624,7 @@
                 <span>Bestandskunden <strong id="exportCountExisting">0</strong></span>
                 <span>Interessenten <strong id="exportCountProspects">0</strong></span>
                 <span>Kaltakquise <strong id="exportCountCold">0</strong></span>
+                <span>Altkunden <strong id="exportCountOld">0</strong></span>
                 <span>Archiviert <strong id="exportCountArchived">0</strong></span>
               </div>
 
@@ -636,13 +638,16 @@
                 <button class="primary-button" id="exportColdCustomers" type="button">
                   Kaltakquise herunterladen
                 </button>
+                <button class="primary-button" id="exportOldCustomers" type="button">
+                  Altkunden herunterladen
+                </button>
                 <button class="secondary-button" id="exportArchivedCustomers" type="button">
                   Archivierte Kunden herunterladen
                 </button>
               </div>
 
               <p class="export-hint">
-                Die vier Exporte verändern keine Daten. Archivierte Kunden sind nur im eigenen Download enthalten.
+                Die fünf Exporte verändern keine Daten. Archivierte Kunden sind nur im eigenen Download enthalten.
               </p>
             </article>
 
@@ -784,6 +789,7 @@
                   <option>Bestandskunde</option>
                   <option>Interessent</option>
                   <option>Kaltakquise</option>
+                  <option>Altkunde</option>
                 </select></label
               ><label class="file-drop"
                 ><input
