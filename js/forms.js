@@ -17,11 +17,25 @@ const formConfigs = {
       ["street", "Straße", "text"],
       ["zip", "PLZ", "text"],
       ["city", "Ort", "text"],
-      ["contact", "Ansprechpartner", "text"],
-      ["phone", "Telefon", "tel"],
-      ["mobile", "Mobil", "tel"],
+      [
+        "contactPerson1",
+        "Ansprechpartner 1",
+        "contactPerson",
+        { name: "contact", phone: "phone", mobile: "mobile", email: "email" },
+      ],
+      [
+        "contactPerson2",
+        "Ansprechpartner 2",
+        "contactPerson",
+        { name: "contact2", phone: "phone2", mobile: "mobile2", email: "email2" },
+      ],
+      [
+        "contactPerson3",
+        "Ansprechpartner 3",
+        "contactPerson",
+        { name: "contact3", phone: "phone3", mobile: "mobile3", email: "email3" },
+      ],
       ["customerGroup", "Kundengruppe", "select", ["", ...customerGroups]],
-      ["email", "E-Mail", "email"],
       ["owner", "Außendienst", "select", owners],
       [
         "potential",
@@ -222,6 +236,35 @@ function openForm(type, preset = {}, options = {}) {
 
       const required = opts === true ? "required" : "";
       let control = "";
+
+      if (input === "contactPerson") {
+        const contactFields = opts || {};
+        const fieldValue = (fieldName) => preset[fieldName] ?? "";
+
+        return `
+          <div class="contact-person-fields">
+            <strong>${label}</strong>
+            <div class="contact-person-grid">
+              <label>
+                Name
+                <input name="${contactFields.name}" type="text" value="${fieldValue(contactFields.name)}">
+              </label>
+              <label>
+                Telefon
+                <input name="${contactFields.phone}" type="tel" value="${fieldValue(contactFields.phone)}">
+              </label>
+              <label>
+                Mobil
+                <input name="${contactFields.mobile}" type="tel" value="${fieldValue(contactFields.mobile)}">
+              </label>
+              <label>
+                E-Mail
+                <input name="${contactFields.email}" type="email" value="${fieldValue(contactFields.email)}">
+              </label>
+            </div>
+          </div>
+        `;
+      }
 
       if (input === "select") {
         control = `

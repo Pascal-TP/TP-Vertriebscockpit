@@ -28,6 +28,14 @@ function renderCustomers() {
       customer.name,
       customer.city,
       customer.contact,
+      customer.contact2,
+      customer.contact3,
+      customer.email,
+      customer.email2,
+      customer.email3,
+      customer.phone,
+      customer.phone2,
+      customer.phone3,
       customer.zip,
       customer.customerGroup,
     ]
@@ -283,6 +291,33 @@ function renderCustomerRevenueDevelopment(customer) {
   `;
 }
 
+function renderCustomerContactPerson(customer, number) {
+  const suffix = number === 1 ? "" : String(number);
+  const name = customer[`contact${suffix}`] || "";
+  const phone = customer[`phone${suffix}`] || "";
+  const mobile = customer[`mobile${suffix}`] || "";
+  const email = customer[`email${suffix}`] || "";
+
+  if (!name && !phone && !mobile && !email) {
+    return `
+      <div class="customer-contact-person">
+        <small>Ansprechpartner ${number}</small>
+        <strong>–</strong>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="customer-contact-person">
+      <small>Ansprechpartner ${number}</small>
+      <strong>${name || "–"}</strong>
+      ${phone ? `<span>Telefon: ${phone}</span>` : ""}
+      ${mobile ? `<span>Mobil: ${mobile}</span>` : ""}
+      ${email ? `<span>E-Mail: ${email}</span>` : ""}
+    </div>
+  `;
+}
+
 function renderCustomerDetail(id) {
   const customer = customerById(id);
 
@@ -460,21 +495,6 @@ function renderCustomerDetail(id) {
         </div>
 
         <div class="info-cell">
-          <small>Ansprechpartner</small>
-          <strong>${customer.contact || "–"}</strong>
-        </div>
-
-        <div class="info-cell">
-          <small>Telefon</small>
-          <strong>${customer.phone || customer.mobile || "–"}</strong>
-        </div>
-
-        <div class="info-cell">
-          <small>E-Mail</small>
-          <strong>${customer.email || "–"}</strong>
-        </div>
-
-        <div class="info-cell">
           <small>Außendienst</small>
           <strong>${customer.owner || "–"}</strong>
         </div>
@@ -495,6 +515,15 @@ function renderCustomerDetail(id) {
           <strong>${formatDate(customer.lastContact)}</strong>
         </div>
       </div>
+
+      <section>
+        <h3 class="section-title">Ansprechpartner</h3>
+        <div class="customer-contact-persons">
+          ${renderCustomerContactPerson(customer, 1)}
+          ${renderCustomerContactPerson(customer, 2)}
+          ${renderCustomerContactPerson(customer, 3)}
+        </div>
+      </section>
 
       <div class="audit-summary">
         <div>
@@ -905,10 +934,18 @@ function renderHistoryChanges(changes = {}) {
     street: "Straße",
     zip: "PLZ",
     city: "Ort",
-    contact: "Ansprechpartner",
-    phone: "Telefon",
-    mobile: "Mobil",
-    email: "E-Mail",
+    contact: "Ansprechpartner 1",
+    phone: "Telefon Ansprechpartner 1",
+    mobile: "Mobil Ansprechpartner 1",
+    email: "E-Mail Ansprechpartner 1",
+    contact2: "Ansprechpartner 2",
+    phone2: "Telefon Ansprechpartner 2",
+    mobile2: "Mobil Ansprechpartner 2",
+    email2: "E-Mail Ansprechpartner 2",
+    contact3: "Ansprechpartner 3",
+    phone3: "Telefon Ansprechpartner 3",
+    mobile3: "Mobil Ansprechpartner 3",
+    email3: "E-Mail Ansprechpartner 3",
     owner: "Außendienst",
     potential: "Potenzial",
     pipeline: "Pipeline",

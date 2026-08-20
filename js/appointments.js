@@ -10,12 +10,12 @@ function renderAppointments() {
   start.setHours(12, 0, 0, 0);
 
   const end = new Date(start);
-  end.setDate(end.getDate() + 4);
+  end.setDate(end.getDate() + 6);
 
   $("#calendarRange").textContent =
     `${formatDate(iso(start))} – ${formatDate(iso(end))}`;
 
-  $("#weekGrid").innerHTML = [...Array(5)]
+  $("#weekGrid").innerHTML = [...Array(7)]
     .map((_, index) => {
       const date = new Date(start);
       date.setDate(start.getDate() + index);
