@@ -520,6 +520,11 @@ function renderExportView() {
       customer.archived !== true && customer.type === "Kaltakquise",
   ).length;
 
+  $("#exportCountOld").textContent = data.customers.filter(
+    (customer) =>
+      customer.archived !== true && customer.type === "Altkunde",
+  ).length;
+
   $("#exportCountArchived").textContent = data.customers.filter(
     (customer) => customer.archived === true,
   ).length;
@@ -551,6 +556,9 @@ function bindExportEvents() {
 
   $("#exportColdCustomers").onclick = () =>
     exportCustomerGroup("Kaltakquise");
+
+  $("#exportOldCustomers").onclick = () =>
+    exportCustomerGroup("Altkunde");
 
   $("#exportArchivedCustomers").onclick = () =>
     exportCustomerGroup("", { archivedOnly: true });

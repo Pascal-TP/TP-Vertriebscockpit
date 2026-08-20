@@ -8,7 +8,7 @@ const viewMeta = {
   ],
   customers: [
     "Kunden",
-    "Bestandskunden, Interessenten und Kaltakquise zentral verwalten",
+    "Bestandskunden, Interessenten, Kaltakquise und Altkunden zentral verwalten",
     "Kundenstamm und Historie",
   ],
   appointments: [

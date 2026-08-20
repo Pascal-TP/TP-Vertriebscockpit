@@ -12,7 +12,7 @@ const formConfigs = {
         "type",
         "Kundenstatus",
         "select",
-        ["Bestandskunde", "Interessent", "Kaltakquise"],
+        ["Bestandskunde", "Interessent", "Kaltakquise", "Altkunde"],
       ],
       ["street", "Straße", "text"],
       ["zip", "PLZ", "text"],
